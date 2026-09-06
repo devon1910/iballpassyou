@@ -1,9 +1,3 @@
 "use client";
 import { useState } from "react";
-
-export function CopyButton({ text, primary = false }: { text: string; primary?: boolean }) {
-  const [copied, setCopied] = useState(false);
-  return <button className={primary ? "button primary" : "button secondary"} onClick={async () => {
-    await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1800);
-  }}>{copied ? "Copied" : "Copy leaderboard"}</button>;
-}
+export function CopyButton({text,primary=false}:{text:string;primary?:boolean}){const [state,setState]=useState<"idle"|"copying"|"copied"|"error">("idle");const copy=async()=>{setState("copying");try{await navigator.clipboard.writeText(text);setState("copied");window.setTimeout(()=>setState("idle"),1800)}catch{setState("error");window.setTimeout(()=>setState("idle"),2600)}};const label=state==="copying"?"Copying…":state==="copied"?"Copied":state==="error"?"Couldn’t copy — try again":"Copy leaderboard";return <button className={primary?"button primary":"button secondary"} disabled={state==="copying"} aria-live="polite" onClick={copy}>{label}</button>}

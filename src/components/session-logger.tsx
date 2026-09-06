@@ -6,6 +6,7 @@ import type { Group, SessionFormat } from "@/types/domain";
 import { localDateInput, preferredSchedule } from "@/lib/time";
 import { matchRoster } from "@/lib/roster";
 import { saveSessionAction } from "@/app/app/actions";
+import { ActionOverlay } from "@/components/action-overlay";
 
 type DraftPlayer = { id: string; name: string; selected: boolean; team: number; goals: number; assists: number; isNew?: boolean };
 type Draft = { clientSessionId: string; step: number; mode: "roster"|"paste"; date: string; time: string; format: SessionFormat; players: DraftPlayer[]; paste: string; labels: string[]; wins: number[] };
@@ -25,8 +26,9 @@ export function SessionLogger({ group }: { group: Group }) {
   const parsePaste = () => { const matched=matchRoster(draft.paste,group.players); const existing=new Set(draft.players.map(p=>p.id)); const additions:DraftPlayer[]=[]; for(const row of matched){ if(row.status==="matched") updatePlayer(row.player.id,{selected:true}); else { const id=`new-${row.input.toLowerCase().replace(/\W+/g,"-")}`; if(!existing.has(id)) additions.push({id,name:row.input,selected:true,team:0,goals:0,assists:0,isNew:true}); } } setDraft(d=>({...d,players:[...d.players,...additions]})); };
   const save = async () => { setSaving(true);setError("");const result=await saveSessionAction({group_id:group.id,client_session_id:draft.clientSessionId,date:draft.date,time:draft.time,timezone:group.timezone,format:draft.format,teams:draft.format==="none"?[]:draft.labels.map((label,i)=>({client_key:String(i),label,set_wins:draft.wins[i]})),players:selected.map(p=>({...(p.isNew?{name:p.name}:{player_id:p.id}),team_key:draft.format==="none"?undefined:String(p.team),goals:p.goals,assists:p.assists}))});setSaving(false);if(!result.ok){setError(result.error);return;}localStorage.removeItem(key);router.push(`/app/groups/${group.id}/leaderboard?saved=1`); };
   const progress = `${draft.step===1?"Players":draft.step===2?"Teams":draft.step===3?"Stats":"Result"} · ${steps.indexOf(draft.step)+1} of ${steps.length}`;
-  if(!ready) return <p className="empty">Loading your session draft…</p>;
+  if(!ready) return <ActionOverlay label="Restoring session draft"/>;
   return <>
+    <ActionOverlay active={saving} label="Saving session"/>
     <div className="page-head compact"><p className="eyebrow">{group.name}</p><h1>{draft.step===1?"WHO PLAYED?":draft.step===2?"PICK TEAMS":draft.step===3?"LOG THE STATS":"RECORD RESULT"}</h1></div>
     {draft.step===1 && <section>
       <div className="form-stack" style={{marginBottom:22}}><label className="field"><span className="field-label">Session date</span><input className="input" type="date" value={draft.date} onChange={e=>setDraft(d=>({...d,date:e.target.value}))}/></label><label className="field"><span className="field-label">Kickoff time</span><input className="input" type="time" value={draft.time} onChange={e=>setDraft(d=>({...d,time:e.target.value}))}/></label><label className="field"><span className="field-label">Format</span><select className="select" value={draft.format} onChange={e=>setDraft(d=>({...d,format:e.target.value as SessionFormat}))}><option value="none">No teams</option><option value="fixed_teams">One fixed-team result</option><option value="sets">Multiple sets</option></select></label></div>

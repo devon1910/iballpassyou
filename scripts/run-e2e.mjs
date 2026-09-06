@@ -1,13 +1,23 @@
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
+import { createServer } from "node:http";
 import process from "node:process";
+import next from "next";
 
-const server=spawn(process.execPath,["node_modules/next/dist/bin/next","start"],{stdio:"inherit",detached:process.platform!=="win32"});
-const stop=()=>{if(!server.pid)return;if(process.platform==="win32")spawnSync("taskkill",["/pid",String(server.pid),"/T","/F"],{stdio:"ignore"});else try{process.kill(-server.pid,"SIGTERM")}catch{}};
+const app=next({dev:false,dir:process.cwd()});
+await app.prepare();
+const handler=app.getRequestHandler();
+const server=createServer((request,response)=>handler(request,response));
+await new Promise((resolve,reject)=>{server.once("error",reject);server.listen(0,"127.0.0.1",resolve)});
+const address=server.address();
+if(!address||typeof address==="string")throw new Error("Could not allocate an E2E server port.");
+const baseURL=`http://127.0.0.1:${address.port}`;
 let exitCode=1;
 try{
-  let ready=false;for(let attempt=0;attempt<60;attempt++){try{const response=await fetch("http://localhost:3000");if(response.ok){ready=true;break}}catch{}await new Promise(resolve=>setTimeout(resolve,250))}
-  if(!ready)throw new Error("Next.js did not become ready for Playwright.");
-  const test=spawn(process.execPath,["node_modules/@playwright/test/cli.js","test"],{stdio:"inherit"});
-  const code=await new Promise(resolve=>test.on("exit",value=>resolve(value??1)));exitCode=Number(code);
-}finally{stop()}
+  const test=spawn(process.execPath,["node_modules/@playwright/test/cli.js","test"],{stdio:"inherit",env:{...process.env,PLAYWRIGHT_BASE_URL:baseURL}});
+  exitCode=Number(await new Promise(resolve=>test.on("exit",value=>resolve(value??1))));
+}finally{
+  server.closeAllConnections();
+  await new Promise(resolve=>server.close(resolve));
+  await app.close();
+}
 process.exit(exitCode);
