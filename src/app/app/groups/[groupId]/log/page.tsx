@@ -1,0 +1,2 @@
+import { SiteNav } from "@/components/site-nav";import { SessionLogger } from "@/components/session-logger";import { getGroupOr404 } from "@/lib/data";
+export default async function LogSessionPage({params}:PageProps<"/app/groups/[groupId]/log">){const {groupId}=await params;const group=await getGroupOr404(groupId);return <main className="shell"><SiteNav backHref={`/app/groups/${groupId}`}/><SessionLogger group={group}/></main>}

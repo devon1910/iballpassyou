@@ -1,0 +1,2 @@
+import { PlayerDetail } from "@/components/player-detail";import { SiteNav } from "@/components/site-nav";import { getSharedGroupOr404 } from "@/lib/data";
+export default async function SharedPlayerPage({params}:PageProps<"/g/[shareToken]/players/[playerId]">){const {shareToken,playerId}=await params;const group=await getSharedGroupOr404(shareToken);return <main className="shell"><SiteNav/><PlayerDetail group={group} playerId={playerId} backHref={`/g/${shareToken}`}/></main>}

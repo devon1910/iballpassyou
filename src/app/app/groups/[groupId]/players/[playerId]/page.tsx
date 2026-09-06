@@ -1,0 +1,2 @@
+import { PlayerDetail } from "@/components/player-detail";import { SiteNav } from "@/components/site-nav";import { getGroupOr404 } from "@/lib/data";
+export default async function AdminPlayerPage({params}:PageProps<"/app/groups/[groupId]/players/[playerId]">){const {groupId,playerId}=await params;const group=await getGroupOr404(groupId);return <main className="shell"><SiteNav/><PlayerDetail group={group} playerId={playerId} backHref={`/app/groups/${groupId}`}/></main>}

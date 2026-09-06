@@ -1,0 +1,2 @@
+import { GroupSettings } from "@/components/group-settings";import { SiteNav } from "@/components/site-nav";import { getGroupOr404 } from "@/lib/data";
+export default async function SettingsPage({params}:PageProps<"/app/groups/[groupId]/settings">){const {groupId}=await params;const group=await getGroupOr404(groupId);return <main className="shell"><SiteNav backHref={`/app/groups/${groupId}`}/><div className="page-head"><p className="eyebrow">{group.name}</p><h1>SETTINGS</h1></div><GroupSettings group={group}/></main>}

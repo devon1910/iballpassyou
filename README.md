@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# iballpassyou
 
-## Getting Started
+Mobile-first, multi-group casual football stats. Pick who showed up, record goals/assists and the result, see the group-local table, and copy the receipts back to WhatsApp.
 
-First, run the development server:
+## Local setup
+
+Requires Node 22+ and a Supabase project. Copy `.env.example` to `.env.local`, add the project URL and anon key, then:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Without Supabase variables the application deliberately runs against representative demo data, so every read route and the complete session-entry interaction can be reviewed locally. Production writes require Supabase.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Database
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Install the Supabase CLI, start its local stack, and apply the migration:
 
-## Learn More
+```bash
+supabase start
+supabase db reset
+psql "$LOCAL_DATABASE_URL" -f supabase/tests/database.sql
+```
 
-To learn more about Next.js, take a look at the following resources:
+The schema stores only raw attendance, team assignment, goals, assists, and set-win facts. Composite foreign keys make cross-group relationships impossible. RLS is enabled on every application table; anonymous roles have no raw-table reads. Public Explore, public-group, and unlisted share-token access use narrow `security definer` RPCs. `create_group(jsonb)` and `save_session(jsonb)` are the only aggregate write commands and each runs as one PostgreSQL transaction. Every server action authenticates again through Supabase/RLS.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+ISO weekday numbering is used everywhere: Monday `1` through Sunday `7`. Session timestamps are `timestamptz`; calendar boundaries and local form values use the group's IANA timezone.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Checks
 
-## Deploy on Vercel
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+npm run test:e2e
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The E2E suite starts the production server from `playwright.config.ts`. Database security assertions live in `supabase/tests/database.sql` and require the local Supabase stack.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Import SpartanStats
+
+The predecessor uses global `players`, date-unique `sessions`, and per-session `stats`; later migrations add goal events and goalkeeper details. The importer intentionally brings only V1 facts: players, sessions, attendance, goals, and assists. Unknown historical winners receive no win bonus.
+
+Set the server-only `SPARTAN_*` and destination service-role variables, then reconcile without writes:
+
+```bash
+npm run import:spartan -- --dry-run
+npm run import:spartan
+```
+
+Stable UUIDs make every entity idempotent. The command prints source/destination player, session, appearance, goal, and assist totals and fails if they do not reconcile. The imported group is private unless `SPARTAN_GROUP_VISIBILITY=public`.
+
+## Deployment
+
+Apply `supabase/migrations` through CI or `supabase db push`, configure the public Supabase variables and `NEXT_PUBLIC_SITE_URL` on the Next.js host, and keep `SUPABASE_SERVICE_ROLE_KEY` server-only (it is used only by the import CLI). Configure the Auth site URL and `/auth/callback` redirect in Supabase.
+
+## Architecture
+
+- `src/app`: App Router pages, public/share surfaces, auth callback, and thin server actions.
+- `src/components`: mobile interaction and table primitives; client components are limited to forms/copy controls.
+- `src/lib`: rating, ranking, timezone, roster parsing, Supabase clients, and the server read layer.
+- `supabase/migrations`: relational schema, tenant constraints, RLS, transactional commands, and narrow read APIs.
+- `scripts/import-spartan.ts`: dry-run capable predecessor migration.
+
+Intentionally deferred: global rankings, player identities/accounts, goal events, analytics, chat/social features, schedule-specific tables, automatic team balancing, and every other league-management feature outside the brief.
