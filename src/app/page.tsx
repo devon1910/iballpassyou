@@ -10,9 +10,9 @@ export default function Home() {
       <Brand hero />
       <div className="landing-copy">
         <p className="eyebrow">Casual football. Proper receipts.</p>
-        <h1>Pick who showed up.<br />See who dey lead.</h1>
+        <h1>Pick who showed up.<br />See who ball pass.</h1>
         <p>Goals, assists and one table your whole group understands. No player accounts. No league admin.</p>
-        <div className="landing-actions"><Link className="button primary" href="/auth/sign-in">Start your group</Link><Link className="text-link" href="/explore">Explore public tables</Link></div>
+        <div className="landing-actions"><Link className="button primary" href="/auth/sign-in">Start your group</Link><Link className="text-link" href="/explore">Explore public leaderboards</Link></div>
       </div>
       <p className="mono landing-foot">Built for the group chat → pitch → group chat loop.</p>
     </div>

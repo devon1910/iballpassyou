@@ -4,6 +4,7 @@ import "@fontsource-variable/archivo";
 import "@fontsource/ibm-plex-mono/400.css";
 import { APP_NAME } from "@/lib/config";
 import { NavigationFeedback } from "@/components/navigation-feedback";
+import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,5 +14,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
-  return <html lang="en"><body><Suspense fallback={null}><NavigationFeedback /></Suspense>{children}</body></html>;
+  return <html lang="en"><body><Suspense fallback={null}><NavigationFeedback /></Suspense>{children}<SiteFooter /></body></html>;
 }
