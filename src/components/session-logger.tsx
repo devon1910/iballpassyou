@@ -112,6 +112,12 @@ export function SessionLogger({ group }: { group: Group }) {
   const key = `ibpy-session-${group.id}`;
 
   useEffect(() => {
+    if (!navigationLabel) return;
+    const timer = window.setTimeout(() => setNavigationLabel(""), 10000);
+    return () => window.clearTimeout(timer);
+  }, [navigationLabel]);
+
+  useEffect(() => {
     const timer = window.setTimeout(() => {
       const saved = localStorage.getItem(key);
       if (saved) {

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: `${APP_NAME}: keep the receipts`, template: `%s: ${APP_NAME}` },
   description: "The fast, group-first football leaderboard. Pick who showed up, log the stats, and share the receipts.",
-  icons: { icon: "/icon.svg", shortcut: "/icon.svg" },
+  icons: { icon: "/brand/icon-192.png", shortcut: "/brand/icon-192.png" },
   openGraph: { type: "website", siteName: APP_NAME, title: `${APP_NAME}: keep the receipts`, description: "Casual football stats, clear leaderboards, and proper receipts.", images: ["/brand/pitch-default.jpeg"] },
   twitter: { card: "summary_large_image", title: `${APP_NAME}: keep the receipts`, description: "Casual football stats, clear leaderboards, and proper receipts.", images: ["/brand/pitch-default.jpeg"] },
   robots: { index: true, follow: true },
