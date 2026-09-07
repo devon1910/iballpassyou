@@ -14,6 +14,8 @@ export function NavigationFeedback() {
 
   useEffect(() => {
     if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+    const resetTimer = window.setTimeout(() => setPendingFrom(null), 0);
+    return () => window.clearTimeout(resetTimer);
   }, [routeKey]);
 
   useEffect(() => {
@@ -33,11 +35,14 @@ export function NavigationFeedback() {
       begin();
     };
     const handlePopState = () => begin();
+    const handlePageShow = () => setPendingFrom(null);
     document.addEventListener("click", handleClick, true);
     window.addEventListener("popstate", handlePopState);
+    window.addEventListener("pageshow", handlePageShow);
     return () => {
       document.removeEventListener("click", handleClick, true);
       window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("pageshow", handlePageShow);
       if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
     };
   }, [routeKey]);

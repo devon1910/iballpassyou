@@ -1,5 +1,5 @@
 "use client";
-import { FormEvent,useState } from "react";
+import { FormEvent,useEffect,useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionOverlay } from "@/components/action-overlay";
 import { InfoTip } from "@/components/info-tip";
@@ -15,6 +15,8 @@ export function CreateGroupForm(){
   const [format,setFormat]=useState<SessionFormat>("fixed_teams");
   const [error,setError]=useState("");
   const [pending,setPending]=useState(false);
+  useEffect(() => { if (!pending) return; const timer = window.setTimeout(() => setPending(false), 10000); return () => window.clearTimeout(timer); }, [pending]);
+  useEffect(() => { const clear = () => setPending(false); window.addEventListener("pageshow", clear); return () => window.removeEventListener("pageshow", clear); }, []);
   const submit=async(e:FormEvent<HTMLFormElement>)=>{e.preventDefault();setPending(true);setError("");const values=new FormData(e.currentTarget);try{const result=await createGroupAction({name:String(values.get("name")??""),timezone:String(values.get("timezone")??"Africa/Lagos"),default_session_format:format,visibility,schedules:days.map(day=>({day_of_week:day,kickoff_time:String(values.get(`time-${day}`)??"18:00"),venue:String(values.get(`venue-${day}`)??"")}))});if(!result.ok){setPending(false);setError(result.error);return}router.push(`/app/groups/${result.id}`)}catch(error){console.error("Create group failed",error);setPending(false);setError("Couldn’t create the group. Try again.")}};
   return <><ActionOverlay active={pending} label="Creating group"/><form className="form-stack" onSubmit={submit} aria-busy={pending}>
     {error&&<p className="notice error" role="alert">{error}</p>}

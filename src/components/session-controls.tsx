@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionOverlay } from "@/components/action-overlay";
 import { createClient } from "@/lib/supabase/client";
@@ -14,6 +14,8 @@ export function SessionControls() {
   const [isError, setIsError] = useState(false);
   const [confirmGlobal, setConfirmGlobal] = useState(false);
   const pending = Boolean(pendingLabel);
+  useEffect(() => { if (!pendingLabel) return; const timer = window.setTimeout(() => setPendingLabel(""), 10000); return () => window.clearTimeout(timer); }, [pendingLabel]);
+  useEffect(() => { const clear = () => setPendingLabel(""); window.addEventListener("pageshow", clear); return () => window.removeEventListener("pageshow", clear); }, []);
 
   const signOut = async (scope: SignOutScope) => {
     let navigating = false;
