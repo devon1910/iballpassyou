@@ -1,2 +1,2 @@
-import { ActionOverlay } from "@/components/action-overlay";
-export default function Loading(){return <ActionOverlay label="Loading"/>}
+import { LoadingFallback } from "@/components/loading-fallback";
+export default function Loading(){return <LoadingFallback/>}
