@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Group, SessionFormat } from "@/types/domain";
 import { localDateInput, preferredSchedule } from "@/lib/time";
 import { matchRoster } from "@/lib/roster";
-import { shuffledTeamAssignments } from "@/lib/teams";
+import { parseTeamSheet, shuffledTeamAssignments } from "@/lib/teams";
 import { saveSessionAction } from "@/app/app/actions";
 import { ActionOverlay } from "@/components/action-overlay";
 import { InfoTip } from "@/components/info-tip";
@@ -67,7 +67,7 @@ export function SessionLogger({ group }: { group: Group }) {
     date: localDateInput(new Date(), group.timezone),
     time: schedule?.kickoffTime ?? "18:00",
     format: group.defaultSessionFormat,
-    players: activePlayers.map((player) => ({ id: player.id, name: player.name, selected: false, team: 0, goals: 0, assists: 0 })),
+    players: activePlayers.map((player) => ({ id: player.id, name: player.name, selected: false, team: -1, goals: 0, assists: 0 })),
     paste: "",
     labels: ["Team 1", "Team 2"],
     wins: [0, 0],
@@ -76,6 +76,9 @@ export function SessionLogger({ group }: { group: Group }) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [activeTeam, setActiveTeam] = useState(0);
+  const [teamSheet, setTeamSheet] = useState("");
+  const [teamMessage, setTeamMessage] = useState("");
   const key = `ibpy-session-${group.id}`;
 
   useEffect(() => {
@@ -89,7 +92,7 @@ export function SessionLogger({ group }: { group: Group }) {
           const count = restored.format === "fixed_teams" ? 2 : labels.length;
           restored.labels = labels.slice(0, count);
           restored.wins = Array.from({ length: count }, (_, index) => Number(restored.wins?.[index] ?? 0));
-          restored.players = restored.players.map((player) => ({ ...player, team: Math.min(Math.max(player.team ?? 0, 0), count - 1) }));
+          restored.players = restored.players.map((player) => ({ ...player, team: player.team >= 0 && player.team < count ? player.team : -1 }));
           if (!activePlayers.length && restored.mode === "roster") restored.mode = "paste";
           setDraft(restored);
         } catch {
@@ -106,11 +109,14 @@ export function SessionLogger({ group }: { group: Group }) {
   }, [draft, key, ready]);
 
   const selected = draft.players.filter((player) => player.selected);
+  const unassigned = selected.filter((player) => player.team < 0 || player.team >= draft.labels.length);
+  const canReuseLastTeams = Boolean(lastSession?.teams.length && (draft.format === "sets" ? lastSession.teams.length >= 2 && lastSession.teams.length <= 8 : lastSession.teams.length === 2));
   const steps = draft.format === "none" ? [1, 3, 4] : [1, 2, 3, 4];
   const updatePlayer = (id: string, update: Partial<DraftPlayer>) => {
     setDraft((current) => ({ ...current, players: current.players.map((player) => player.id === id ? { ...player, ...update } : player) }));
   };
   const changeFormat = (format: SessionFormat) => {
+    if (format === "fixed_teams") setActiveTeam((current) => Math.min(current, 1));
     setDraft((current) => {
       const count = format === "fixed_teams" ? 2 : Math.max(2, current.labels.length);
       return {
@@ -118,17 +124,19 @@ export function SessionLogger({ group }: { group: Group }) {
         format,
         labels: Array.from({ length: count }, (_, index) => current.labels[index] || `Team ${index + 1}`),
         wins: Array.from({ length: count }, (_, index) => current.wins[index] ?? 0),
-        players: current.players.map((player) => ({ ...player, team: player.team < count ? player.team : 0 })),
+        players: current.players.map((player) => ({ ...player, team: player.team < count ? player.team : -1 })),
       };
     });
   };
   const setTeamCount = (requested: number) => {
     const count = Math.min(8, Math.max(2, requested));
+    setActiveTeam((current) => Math.min(current, count - 1));
+    setTeamMessage("");
     setDraft((current) => ({
       ...current,
       labels: Array.from({ length: count }, (_, index) => current.labels[index] || `Team ${index + 1}`),
       wins: Array.from({ length: count }, (_, index) => current.wins[index] ?? 0),
-      players: current.players.map((player) => ({ ...player, team: player.team < count ? player.team : player.team % count })),
+      players: current.players.map((player) => ({ ...player, team: player.team < count ? player.team : -1 })),
     }));
   };
   const assignEvenly = () => {
@@ -137,9 +145,72 @@ export function SessionLogger({ group }: { group: Group }) {
       ...current,
       players: current.players.map((player) => assignments.has(player.id) ? { ...player, team: assignments.get(player.id)! } : player),
     }));
+    setTeamMessage(`${selected.length} players shuffled into ${draft.labels.length} balanced teams.`);
+  };
+  const reuseLastTeams = () => {
+    if (!lastSession?.teams.length) return;
+    const labels = lastSession.teams.map((team) => team.label);
+    if (draft.format === "fixed_teams" && labels.length !== 2) {
+      setError("The previous session did not use exactly two teams.");
+      return;
+    }
+    const teamById = new Map(lastSession.teams.map((team, index) => [team.id, index]));
+    const assignments = new Map(lastSession.appearances.flatMap((appearance) => {
+      const team = appearance.teamId ? teamById.get(appearance.teamId) : undefined;
+      return team === undefined ? [] : [[appearance.playerId, team] as const];
+    }));
+    setActiveTeam(0);
+    setError("");
+    setDraft((current) => ({
+      ...current,
+      labels,
+      wins: labels.map(() => 0),
+      players: current.players.map((player) => player.selected ? { ...player, team: assignments.get(player.id) ?? -1 } : player),
+    }));
+    setTeamMessage("Previous team assignments applied. Any new attendees remain unassigned.");
+  };
+  const applyTeamSheet = () => {
+    const parsed = parseTeamSheet(teamSheet);
+    if (draft.format === "fixed_teams" && parsed.teams.length !== 2) parsed.errors.push("Fixed-team sessions need exactly two team headings.");
+    if (parsed.errors.length) {
+      setError(parsed.errors[0]);
+      return;
+    }
+    const availablePlayers = draft.players.map((player) => ({ id: player.id, name: player.name, active: true }));
+    const assignments = new Map<string, number>();
+    const problemNames: string[] = [];
+    for (const [teamIndex, team] of parsed.teams.entries()) {
+      for (const result of matchRoster(team.names.join("\n"), availablePlayers)) {
+        if (result.status !== "matched") {
+          problemNames.push(result.input);
+          continue;
+        }
+        if (assignments.has(result.player.id)) problemNames.push(result.input);
+        else assignments.set(result.player.id, teamIndex);
+      }
+    }
+    if (problemNames.length) {
+      setError(`Check missing, ambiguous, or repeated names: ${problemNames.join(", ")}.`);
+      return;
+    }
+    setActiveTeam(0);
+    setError("");
+    setDraft((current) => ({
+      ...current,
+      labels: parsed.teams.map((team) => team.label),
+      wins: parsed.teams.map(() => 0),
+      players: current.players.map((player) => assignments.has(player.id)
+        ? { ...player, selected: true, team: assignments.get(player.id)! }
+        : player.selected ? { ...player, team: -1 } : player),
+    }));
+    setTeamMessage(`${assignments.size} players assigned from the pasted team sheet.`);
   };
   const next = () => {
     setError("");
+    if (draft.step === 2 && unassigned.length) {
+      setError(`Assign ${unassigned.length} remaining player${unassigned.length === 1 ? "" : "s"} before continuing.`);
+      return;
+    }
     const index = steps.indexOf(draft.step);
     if (index < steps.length - 1) setDraft((current) => ({ ...current, step: steps[index + 1] }));
   };
@@ -251,17 +322,28 @@ export function SessionLogger({ group }: { group: Group }) {
 
       {draft.step === 2 && <section>
         <div className="section-row team-heading">
-          <div><span className="section-label with-tip">Teams <InfoTip label="Explain team assignment">Choose 2–8 teams for set play, then shuffle everyone into balanced teams. You can still move individual players afterwards.</InfoTip></span><strong>{draft.labels.length} teams · {selected.length} players</strong></div>
+          <div><span className="section-label with-tip">Teams <InfoTip label="Explain team assignment">For pre-arranged teams, reuse the previous teams or paste a grouped team sheet. On the pitch, choose a team and tap each player going into it.</InfoTip></span><strong>{draft.labels.length} teams · {selected.length} players</strong></div>
           {draft.format === "sets" && <div className="mini-stepper" aria-label="Number of teams"><button type="button" disabled={draft.labels.length <= 2} onClick={() => setTeamCount(draft.labels.length - 1)} aria-label="Remove a team">−</button><output>{draft.labels.length}</output><button type="button" disabled={draft.labels.length >= 8} onClick={() => setTeamCount(draft.labels.length + 1)} aria-label="Add a team">+</button></div>}
         </div>
         {draft.format === "fixed_teams" && <p className="notice">Fixed-team sessions always use exactly two teams.</p>}
-        <button className="button team-shuffle" type="button" onClick={assignEvenly}>Shuffle evenly</button>
-        <div className="team-columns">{draft.labels.map((label, index) => <div className="team-column" key={index}>
+        <div className="team-quick-actions">
+          <button className="button" type="button" onClick={assignEvenly}>Shuffle evenly</button>
+          <button className="button" type="button" disabled={!canReuseLastTeams} onClick={reuseLastTeams}>Reuse last teams</button>
+        </div>
+        <details className="team-sheet">
+          <summary>Paste pre-arranged teams</summary>
+          <p className="muted">Put each team name before a colon, followed by its players.</p>
+          <textarea className="textarea" aria-label="Grouped team sheet" value={teamSheet} onChange={(event) => setTeamSheet(event.target.value)} placeholder={'Red:\nAda\nBola\n\nBlue:\nChidi\nDele'} />
+          <button className="button" type="button" disabled={!teamSheet.trim()} onClick={applyTeamSheet}>Apply team sheet</button>
+        </details>
+        {teamMessage && <p className="notice" role="status">{teamMessage}</p>}
+        <div className="team-target-grid">{draft.labels.map((label, index) => <div className={`team-target ${activeTeam === index ? "active" : ""}`} key={index}>
           <input className="input" aria-label={`Team ${index + 1} label`} value={label} onChange={(event) => setDraft((current) => ({ ...current, labels: current.labels.map((value, position) => position === index ? event.target.value : value) }))} />
-          <span className="team-size">{selected.filter((player) => player.team === index).length} players</span>
-          {selected.filter((player) => player.team === index).map((player) => <div className="team-player" key={player.id}>{player.name}</div>)}
+          <button type="button" onClick={() => setActiveTeam(index)} aria-pressed={activeTeam === index}><strong>Assign here</strong><span>{selected.filter((player) => player.team === index).length} players</span></button>
         </div>)}</div>
-        <details className="manual-teams"><summary>Fine-tune assignments</summary><div className="list">{selected.map((player) => <label className="team-player" key={player.id}>{player.name}<select value={player.team} onChange={(event) => updatePlayer(player.id, { team: Number(event.target.value) })}>{draft.labels.map((label, index) => <option value={index} key={index}>{label}</option>)}</select></label>)}</div></details>
+        <div className="assignment-head"><p>Tap players to put them in <strong>{draft.labels[activeTeam]}</strong>.</p><span>{unassigned.length} unassigned</span></div>
+        {unassigned.length > 0 && <button className="chip assign-remaining" type="button" onClick={() => { setDraft((current) => ({ ...current, players: current.players.map((player) => player.selected && player.team < 0 ? { ...player, team: activeTeam } : player) })); setTeamMessage(`${unassigned.length} remaining players moved to ${draft.labels[activeTeam]}.`); }}>Assign all remaining here</button>}
+        <div className="assignment-board">{selected.map((player) => <button className={`assignment-player ${player.team === activeTeam ? "active" : ""} ${player.team < 0 ? "unassigned" : ""}`} type="button" key={player.id} onClick={() => updatePlayer(player.id, { team: activeTeam })}><span>{player.name}</span><small>{player.team < 0 ? "Unassigned" : draft.labels[player.team]}</small></button>)}</div>
       </section>}
 
       {draft.step === 3 && <section>

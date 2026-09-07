@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shuffledTeamAssignments } from "./teams";
+import { parseTeamSheet, shuffledTeamAssignments } from "./teams";
 
 describe("shuffledTeamAssignments", () => {
   it("assigns every player and keeps teams balanced", () => {
@@ -21,5 +21,23 @@ describe("shuffledTeamAssignments", () => {
     );
 
     expect(Math.max(...sizes) - Math.min(...sizes)).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("parseTeamSheet", () => {
+  it("reads multiline and inline grouped teams", () => {
+    expect(parseTeamSheet("Red:\nAda\nBola\n\nBlue: Chidi, Dele")).toEqual({
+      teams: [
+        { label: "Red", names: ["Ada", "Bola"] },
+        { label: "Blue", names: ["Chidi", "Dele"] },
+      ],
+      errors: [],
+    });
+  });
+
+  it("requires explicit headings", () => {
+    const result = parseTeamSheet("Ada\nBola");
+    expect(result.teams).toEqual([]);
+    expect(result.errors).toContain("Add at least two team headings ending with a colon.");
   });
 });

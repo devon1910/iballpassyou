@@ -153,18 +153,32 @@ h2 { font-size: 25px; letter-spacing: -.035em; }
 .mini-stepper button, .mini-stepper output { width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid var(--color-hair); background: transparent; color: var(--color-paper); font: 15px var(--font-mono); }
 .mini-stepper output { width: 38px; margin-inline: -1px; }
 .mini-stepper button:disabled { color: #4b4e43; cursor: not-allowed; }
-.team-shuffle { margin: 16px 0 20px; border-color: var(--color-lime); color: var(--color-lime); }
-.team-columns { display: grid; grid-template-columns: repeat(auto-fit,minmax(135px,1fr)); gap: 14px; }
-.team-column { border-top: 3px solid var(--color-paper); }
-.team-column:nth-child(2) { border-color: var(--color-muted); }
-.team-column:nth-child(3n) { border-color: var(--color-lime); }
-.team-column:nth-child(4n) { border-color: #a9b3ff; }
-.team-column .input { margin: 12px 0; }
-.team-size { display: block; margin: -5px 0 9px; color: var(--color-muted); font: 10px var(--font-mono); }
-.team-player { min-height: 48px; display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--color-hair); font-size: 14px; }
-.team-player select { margin-left: auto; background: transparent; color: var(--color-paper); border: 0; }
-.manual-teams { margin-top: 24px; }
-.manual-teams > summary { min-height: 48px; display: flex; align-items: center; color: var(--color-muted); cursor: pointer; font-size: 13px; text-decoration: underline; text-underline-offset: 5px; }
+.team-quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+.team-quick-actions .button { min-width: 0; padding-inline: 10px; font-size: 13px; }
+.team-sheet { margin: 0 0 20px; border-block: 1px solid var(--color-hair); }
+.team-sheet > summary { min-height: 50px; display: flex; align-items: center; color: var(--color-lime); cursor: pointer; font-size: 13px; font-weight: 700; }
+.team-sheet > p { margin: 0 0 12px; font-size: 12px; line-height: 1.5; }
+.team-sheet .textarea { min-height: 180px; }
+.team-sheet .button { margin: 10px 0 16px; }
+.team-target-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(135px,1fr)); gap: 10px; margin: 20px 0; }
+.team-target { border: 1px solid var(--color-hair); padding: 8px; }
+.team-target.active { border-color: var(--color-lime); box-shadow: inset 0 0 0 1px var(--color-lime); }
+.team-target .input { min-height: 44px; padding: 9px 10px; }
+.team-target > button { width: 100%; min-height: 48px; margin-top: 7px; border: 0; background: transparent; color: var(--color-paper); text-align: left; cursor: pointer; }
+.team-target > button strong, .team-target > button span { display: block; }
+.team-target > button strong { color: var(--color-lime); font-size: 12px; }
+.team-target > button span { margin-top: 3px; color: var(--color-muted); font: 10px var(--font-mono); }
+.assignment-head { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin: 24px 0 10px; }
+.assignment-head p { margin: 0; font-size: 14px; line-height: 1.5; }
+.assignment-head > span { flex: none; color: var(--color-muted); font: 10px var(--font-mono); }
+.assign-remaining { margin-bottom: 10px; color: var(--color-lime); }
+.assignment-board { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 8px; }
+.assignment-player { min-height: 55px; padding: 9px 11px; border: 1px solid var(--color-hair); background: #171910; color: var(--color-paper); text-align: left; cursor: pointer; }
+.assignment-player span, .assignment-player small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.assignment-player small { margin-top: 4px; color: var(--color-muted); font: 10px var(--font-mono); }
+.assignment-player.unassigned { border-style: dashed; }
+.assignment-player.active { border-color: var(--color-lime); background: var(--color-lime); color: var(--color-ink); }
+.assignment-player.active small { color: #505a17; }
 .summary-preview { white-space: pre-wrap; padding: 18px; margin: 18px 0; border: 1px solid var(--color-hair); color: #c6c8bd; font: 11px/1.7 var(--font-mono); }
 .settings-row { padding: 20px 0; border-top: 1px solid var(--color-hair); }
 .settings-row:last-child { border-bottom: 1px solid var(--color-hair); }
