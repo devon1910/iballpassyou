@@ -9,7 +9,7 @@ type OldPlayer = { id: string; name: string };
 type OldSession = { id: string; session_date: string };
 type OldStat = { session_id: string; player_id: string; goals: number; assists: number };
 
-const aliases: Record<string, string> = { chappy: "Chappy", agbaso: "Chappy", kola: "Chappy", senna: "Senna", cena: "Senna", ceena: "Senna" };
+const aliases: Record<string, string> = { chappy: "Chappy", agbaso: "Agbaso", kola: "Kola", senna: "Senna", cena: "Senna", ceena: "Senna" };
 
 async function main() {
   const dryRun = new Set(process.argv.slice(2)).has("--dry-run");
