@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ActionOverlay } from "@/components/action-overlay";
+import { InlineSpinner } from "@/components/inline-spinner";
 
 export function ShareButton({ text, path, admin = false }: { text: string; path: string; admin?: boolean }) {
   const [pending, setPending] = useState(false);
@@ -20,5 +20,5 @@ export function ShareButton({ text, path, admin = false }: { text: string; path:
       }
     } finally { setPending(false); }
   }
-  return <><ActionOverlay active={pending} label="Opening share options"/><button className="button" type="button" onClick={share} disabled={pending} aria-busy={pending}>Share leaderboard</button>{message && <p className="share-message" role="status">{message}</p>}</>;
+  return <><button className="button" type="button" onClick={share} disabled={pending} aria-busy={pending}>{pending&&<InlineSpinner/>}{pending?"Opening share options":"Share leaderboard"}</button>{message && <p className="share-message" role="status">{message}</p>}</>;
 }

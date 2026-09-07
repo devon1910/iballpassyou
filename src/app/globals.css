@@ -274,6 +274,7 @@ h2 { font-size: 25px; letter-spacing: -.035em; }
 .action-overlay { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: rgba(18,20,14,.88); cursor: wait; }
 .action-loader { display: grid; justify-items: center; gap: 14px; color: var(--color-paper); font: 11px var(--font-mono); letter-spacing: .14em; text-transform: uppercase; }
 .action-loader img { animation: icon-spin 1.05s cubic-bezier(.55,.05,.45,.95) infinite; }
+.inline-spinner { width: 16px; height: 16px; display: inline-block; margin-right: 8px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; vertical-align: -3px; animation: icon-spin .7s linear infinite; }
 @keyframes icon-spin { to { transform: rotate(360deg); } }
 @media (min-width: 700px) { .landing-actions { flex-direction: row; align-items: center; max-width: none; } .landing-actions .button { width: 260px; } .cards { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 440px) { .session-action { grid-template-columns: 1fr; } .session-action .button, .session-action .text-link { width: 100%; justify-content: center; } .confirm-actions { justify-content: stretch; } .confirm-actions > * { flex: 1; } }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ActionOverlay } from "@/components/action-overlay";
+import { InlineSpinner } from "@/components/inline-spinner";
 import { createClient } from "@/lib/supabase/client";
 
 type SignOutScope = "local" | "others" | "global";
@@ -13,6 +13,7 @@ export function SessionControls() {
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
   const [confirmGlobal, setConfirmGlobal] = useState(false);
+  const [pendingScope, setPendingScope] = useState<SignOutScope | null>(null);
   const pending = Boolean(pendingLabel);
   useEffect(() => { if (!pendingLabel) return; const timer = window.setTimeout(() => setPendingLabel(""), 10000); return () => window.clearTimeout(timer); }, [pendingLabel]);
   useEffect(() => { const clear = () => setPendingLabel(""); window.addEventListener("pageshow", clear); return () => window.removeEventListener("pageshow", clear); }, []);
@@ -20,6 +21,7 @@ export function SessionControls() {
   const signOut = async (scope: SignOutScope) => {
     let navigating = false;
     setPendingLabel(scope === "others" ? "Signing out other devices" : scope === "global" ? "Signing out everywhere" : "Signing out");
+    setPendingScope(scope);
     setMessage("");
     setIsError(false);
     try {
@@ -39,27 +41,26 @@ export function SessionControls() {
       setIsError(true);
       setMessage("Couldn’t update your login sessions. Please try again.");
     } finally {
-      if (!navigating) setPendingLabel("");
+      if (!navigating) { setPendingLabel(""); setPendingScope(null); }
     }
   };
 
   return (
     <section className="session-controls" aria-busy={pending}>
-      <ActionOverlay active={pending} label={pendingLabel} />
       {message && <p className={`notice ${isError ? "error" : ""}`} role={isError ? "alert" : "status"}>{message}</p>}
       <div className="session-action">
         <div><strong>Sign out this device</strong><p>End only the login session in this browser.</p></div>
-        <button className="button small" type="button" disabled={pending} onClick={() => signOut("local")}>Sign out</button>
+        <button className="button small" type="button" disabled={pending} onClick={() => signOut("local")}>{pendingScope==="local"&&<InlineSpinner/>}Sign out</button>
       </div>
       <div className="session-action">
         <div><strong>Sign out other devices</strong><p>Keep this browser signed in and revoke your other sessions.</p></div>
-        <button className="button small" type="button" disabled={pending} onClick={() => signOut("others")}>Sign out others</button>
+        <button className="button small" type="button" disabled={pending} onClick={() => signOut("others")}>{pendingScope==="others"&&<InlineSpinner/>}Sign out others</button>
       </div>
       <div className="session-action danger-zone">
         <div><strong>Sign out everywhere</strong><p>End this session and every other active login.</p></div>
         {!confirmGlobal
           ? <button className="text-link" type="button" disabled={pending} onClick={() => setConfirmGlobal(true)}>Sign out everywhere</button>
-          : <div className="confirm-actions"><button className="button small" type="button" disabled={pending} onClick={() => signOut("global")}>Confirm</button><button className="text-link" type="button" disabled={pending} onClick={() => setConfirmGlobal(false)}>Cancel</button></div>}
+          : <div className="confirm-actions"><button className="button small" type="button" disabled={pending} onClick={() => signOut("global")}>{pendingScope==="global"&&<InlineSpinner/>}Confirm</button><button className="text-link" type="button" disabled={pending} onClick={() => setConfirmGlobal(false)}>Cancel</button></div>}
       </div>
     </section>
   );
