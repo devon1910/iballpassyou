@@ -16,6 +16,12 @@ export function shuffledTeamAssignments(
   return new Map(shuffled.map((playerId, index) => [playerId, index % teamCount]));
 }
 
+export function unassignedPlayersLabel(names: string[]) {
+  if (names.length === 1) return `${names[0]} is unassigned.`;
+  if (names.length === 2) return `${names[0]} and ${names[1]} are unassigned.`;
+  return `${names.length} unassigned`;
+}
+
 export type ParsedTeamSheet = {
   teams: { label: string; names: string[] }[];
   errors: string[];

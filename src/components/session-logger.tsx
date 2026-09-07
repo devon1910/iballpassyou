@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Group, SessionFormat } from "@/types/domain";
 import { localDateInput, preferredSchedule } from "@/lib/time";
 import { matchRoster } from "@/lib/roster";
-import { parseTeamSheet, shuffledTeamAssignments } from "@/lib/teams";
+import { parseTeamSheet, shuffledTeamAssignments, unassignedPlayersLabel } from "@/lib/teams";
 import { saveSessionAction } from "@/app/app/actions";
 import { ActionOverlay } from "@/components/action-overlay";
 import { InfoTip } from "@/components/info-tip";
@@ -32,6 +32,14 @@ type Draft = {
   labels: string[];
   wins: number[];
 };
+
+const TEAM_TONES = ["red", "black", "blue", "amber", "green", "purple", "orange", "white"] as const;
+
+function teamTone(label: string, index: number) {
+  const normalized = label.toLocaleLowerCase();
+  const namedTone = TEAM_TONES.find((tone) => normalized.includes(tone));
+  return namedTone ?? TEAM_TONES[index % TEAM_TONES.length];
+}
 
 function Counter({ value, setValue, label }: { value: number; setValue: (value: number) => void; label: string }) {
   return (
@@ -109,7 +117,16 @@ export function SessionLogger({ group }: { group: Group }) {
   }, [draft, key, ready]);
 
   const selected = draft.players.filter((player) => player.selected);
+  const statsGroups = draft.format === "none"
+    ? []
+    : draft.labels.map((label, team) => ({
+        label,
+        team,
+        tone: teamTone(label, team),
+        players: selected.filter((player) => player.team === team),
+      }));
   const unassigned = selected.filter((player) => player.team < 0 || player.team >= draft.labels.length);
+  const unassignedLabel = unassignedPlayersLabel(unassigned.map((player) => player.name));
   const canReuseLastTeams = Boolean(lastSession?.teams.length && (draft.format === "sets" ? lastSession.teams.length >= 2 && lastSession.teams.length <= 8 : lastSession.teams.length === 2));
   const steps = draft.format === "none" ? [1, 3, 4] : [1, 2, 3, 4];
   const updatePlayer = (id: string, update: Partial<DraftPlayer>) => {
@@ -208,7 +225,9 @@ export function SessionLogger({ group }: { group: Group }) {
   const next = () => {
     setError("");
     if (draft.step === 2 && unassigned.length) {
-      setError(`Assign ${unassigned.length} remaining player${unassigned.length === 1 ? "" : "s"} before continuing.`);
+      setError(unassigned.length < 3
+        ? `${unassignedLabel} Assign before continuing.`
+        : `Assign ${unassigned.length} remaining players before continuing.`);
       return;
     }
     const index = steps.indexOf(draft.step);
@@ -337,18 +356,29 @@ export function SessionLogger({ group }: { group: Group }) {
           <button className="button" type="button" disabled={!teamSheet.trim()} onClick={applyTeamSheet}>Apply team sheet</button>
         </details>
         {teamMessage && <p className="notice" role="status">{teamMessage}</p>}
-        <div className="team-target-grid">{draft.labels.map((label, index) => <div className={`team-target ${activeTeam === index ? "active" : ""}`} key={index}>
+        <div className="team-target-grid">{draft.labels.map((label, index) => <div className={`team-target team-tone-${teamTone(label, index)} ${activeTeam === index ? "active" : ""}`} key={index}>
           <input className="input" aria-label={`Team ${index + 1} label`} value={label} onChange={(event) => setDraft((current) => ({ ...current, labels: current.labels.map((value, position) => position === index ? event.target.value : value) }))} />
           <button type="button" onClick={() => setActiveTeam(index)} aria-pressed={activeTeam === index}><strong>Assign here</strong><span>{selected.filter((player) => player.team === index).length} players</span></button>
         </div>)}</div>
-        <div className="assignment-head"><p>Tap players to put them in <strong>{draft.labels[activeTeam]}</strong>.</p><span>{unassigned.length} unassigned</span></div>
+        <div className="assignment-head"><p>Tap players to put them in <strong>{draft.labels[activeTeam]}</strong>.</p><span>{unassignedLabel}</span></div>
         {unassigned.length > 0 && <button className="chip assign-remaining" type="button" onClick={() => { setDraft((current) => ({ ...current, players: current.players.map((player) => player.selected && player.team < 0 ? { ...player, team: activeTeam } : player) })); setTeamMessage(`${unassigned.length} remaining players moved to ${draft.labels[activeTeam]}.`); }}>Assign all remaining here</button>}
-        <div className="assignment-board">{selected.map((player) => <button className={`assignment-player ${player.team === activeTeam ? "active" : ""} ${player.team < 0 ? "unassigned" : ""}`} type="button" key={player.id} onClick={() => updatePlayer(player.id, { team: activeTeam })}><span>{player.name}</span><small>{player.team < 0 ? "Unassigned" : draft.labels[player.team]}</small></button>)}</div>
+        <div className="assignment-board">{selected.map((player) => {
+          const assignedTone = player.team >= 0 ? `team-tone-${teamTone(draft.labels[player.team], player.team)}` : "";
+          return <button className={`assignment-player ${assignedTone} ${player.team === activeTeam ? "active" : ""} ${player.team < 0 ? "unassigned" : ""}`} type="button" key={player.id} onClick={() => updatePlayer(player.id, { team: activeTeam })}><span>{player.name}</span><small>{player.team < 0 ? "Unassigned" : draft.labels[player.team]}</small></button>;
+        })}</div>
       </section>}
 
       {draft.step === 3 && <section>
         <p className="lede">Enter each player’s totals for the whole session.</p>
-        {selected.map((player) => <div className="player-block" key={player.id}><h3>{player.name}</h3><div className="counter-line"><span>Goals</span><Counter label={`a goal for ${player.name}`} value={player.goals} setValue={(goals) => updatePlayer(player.id, { goals })} /></div><div className="counter-line"><span>Assists</span><Counter label={`an assist for ${player.name}`} value={player.assists} setValue={(assists) => updatePlayer(player.id, { assists })} /></div></div>)}
+        {draft.format === "none"
+          ? selected.map((player) => <div className="player-block" key={player.id}><h3>{player.name}</h3><div className="counter-line"><span>Goals</span><Counter label={`a goal for ${player.name}`} value={player.goals} setValue={(goals) => updatePlayer(player.id, { goals })} /></div><div className="counter-line"><span>Assists</span><Counter label={`an assist for ${player.name}`} value={player.assists} setValue={(assists) => updatePlayer(player.id, { assists })} /></div></div>)
+          : <div className="team-stats-list">{statsGroups.map((team) => <section className={`team-stats-group team-tone-${team.tone}`} key={team.team} aria-labelledby={`team-stats-${team.team}`}>
+              <header className="team-stats-head">
+                <div><span className="team-stats-swatch" /><h2 id={`team-stats-${team.team}`}>{team.label}</h2></div>
+                <span>{team.players.length} player{team.players.length === 1 ? "" : "s"}</span>
+              </header>
+              <div className="team-stats-players">{team.players.map((player) => <div className="player-block" key={player.id}><h3>{player.name}</h3><div className="counter-line"><span>Goals</span><Counter label={`a goal for ${player.name}`} value={player.goals} setValue={(goals) => updatePlayer(player.id, { goals })} /></div><div className="counter-line"><span>Assists</span><Counter label={`an assist for ${player.name}`} value={player.assists} setValue={(assists) => updatePlayer(player.id, { assists })} /></div></div>)}</div>
+            </section>)}</div>}
       </section>}
 
       {draft.step === 4 && <section>

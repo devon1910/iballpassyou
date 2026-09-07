@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseTeamSheet, shuffledTeamAssignments } from "./teams";
+import { parseTeamSheet, shuffledTeamAssignments, unassignedPlayersLabel } from "./teams";
 
 describe("shuffledTeamAssignments", () => {
   it("assigns every player and keeps teams balanced", () => {
@@ -39,5 +39,16 @@ describe("parseTeamSheet", () => {
     const result = parseTeamSheet("Ada\nBola");
     expect(result.teams).toEqual([]);
     expect(result.errors).toContain("Add at least two team headings ending with a colon.");
+  });
+});
+
+describe("unassignedPlayersLabel", () => {
+  it("names one or two remaining players", () => {
+    expect(unassignedPlayersLabel(["Peter"])).toBe("Peter is unassigned.");
+    expect(unassignedPlayersLabel(["Peter", "John"])).toBe("Peter and John are unassigned.");
+  });
+
+  it("uses a compact count for three or more players", () => {
+    expect(unassignedPlayersLabel(["Peter", "John", "Ada"])).toBe("3 unassigned");
   });
 });
