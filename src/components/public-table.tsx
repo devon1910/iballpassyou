@@ -8,5 +8,6 @@ import type { Group, LeaderboardPeriod } from "@/types/domain";
 
 export function PublicTable({ group, period, base, playerBase }: { group: Group; period: LeaderboardPeriod; base: string; playerBase: string }) {
   const rows = leaderboardFor(group, period);
-  return <><PeriodSwitcher active={period} base={base} /><Leaderboard rows={rows} playerHref={(id) => `${playerBase}/${id}`} /><RatingNote /><CopyButton text={shareText(group, rows)} /></>;
+  const periodLabel = { month: "THIS MONTH", last_month: "LAST MONTH", year: "YEAR", all: "ALL TIME" }[period];
+  return <><PeriodSwitcher active={period} base={base} /><Leaderboard rows={rows} playerHref={(id) => `${playerBase}/${id}`} /><RatingNote /><CopyButton text={shareText(group, rows, periodLabel)} /></>;
 }

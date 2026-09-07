@@ -1,6 +1,6 @@
 export type SessionFormat = "none" | "fixed_teams" | "sets";
 export type Visibility = "private" | "public";
-export type LeaderboardPeriod = "latest" | "month" | "year" | "all";
+export type LeaderboardPeriod = "month" | "last_month" | "year" | "all";
 
 export interface Schedule {
   id: string;
@@ -62,4 +62,3 @@ export interface LeaderboardRow {
   rating: number;
   rank: number;
 }
-

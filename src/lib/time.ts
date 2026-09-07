@@ -7,12 +7,11 @@ export function isoWeekday(date: Date, timezone: string) {
 
 export function periodSessions(
   sessions: FootballSession[],
-  period: "latest" | "month" | "year" | "all",
+  period: "month" | "last_month" | "year" | "all",
   timezone: string,
   now = new Date(),
 ) {
   const sorted = [...sessions].sort((a, b) => b.kickoffAt.localeCompare(a.kickoffAt));
-  if (period === "latest") return sorted.slice(0, 1);
   if (period === "all") return sorted;
   const parts = (date: Date) => {
     const mapped = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", timeZone: timezone })
@@ -20,9 +19,13 @@ export function periodSessions(
     return { year: mapped.year, month: mapped.month };
   };
   const current = parts(now);
+  const previousMonth = current.month === "01"
+    ? { year: String(Number(current.year) - 1), month: "12" }
+    : { year: current.year, month: String(Number(current.month) - 1).padStart(2, "0") };
+  const target = period === "last_month" ? previousMonth : current;
   return sorted.filter((session) => {
     const value = parts(new Date(session.kickoffAt));
-    return value.year === current.year && (period === "year" || value.month === current.month);
+    return value.year === target.year && (period === "year" || value.month === target.month);
   });
 }
 

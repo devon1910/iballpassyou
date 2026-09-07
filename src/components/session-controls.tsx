@@ -16,6 +16,7 @@ export function SessionControls() {
   const pending = Boolean(pendingLabel);
 
   const signOut = async (scope: SignOutScope) => {
+    let navigating = false;
     setPendingLabel(scope === "others" ? "Signing out other devices" : scope === "global" ? "Signing out everywhere" : "Signing out");
     setMessage("");
     setIsError(false);
@@ -28,6 +29,7 @@ export function SessionControls() {
         setConfirmGlobal(false);
         return;
       }
+      navigating = true;
       router.replace("/auth/sign-in?signedOut=1");
       router.refresh();
     } catch (error) {
@@ -35,7 +37,7 @@ export function SessionControls() {
       setIsError(true);
       setMessage("Couldn’t update your login sessions. Please try again.");
     } finally {
-      setPendingLabel("");
+      if (!navigating) setPendingLabel("");
     }
   };
 

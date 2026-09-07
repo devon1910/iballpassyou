@@ -1,2 +1,19 @@
-import { GroupHeading } from "@/components/group-heading";import { PublicTable } from "@/components/public-table";import { SiteNav } from "@/components/site-nav";import { getPeriod } from "@/lib/view-data";import { getGroupOr404 } from "@/lib/data";
-export default async function FullLeaderboard({params,searchParams}:PageProps<"/app/groups/[groupId]/leaderboard">){const [{groupId},query]=await Promise.all([params,searchParams]);const group=await getGroupOr404(groupId);const period=getPeriod(typeof query.period==="string"?query.period:undefined);return <main className="shell"><SiteNav backHref={`/app/groups/${groupId}`}/><GroupHeading group={group}/><PublicTable group={group} period={period} base={`/app/groups/${groupId}/leaderboard`} playerBase={`/app/groups/${groupId}/players`}/></main>}
+import { GroupHeading } from "@/components/group-heading";
+import { PublicTable } from "@/components/public-table";
+import { SessionCalendar } from "@/components/session-calendar";
+import { SiteNav } from "@/components/site-nav";
+import { getGroupOr404 } from "@/lib/data";
+import { getPeriod } from "@/lib/view-data";
+
+export default async function FullLeaderboard({ params, searchParams }: PageProps<"/app/groups/[groupId]/leaderboard">) {
+  const [{ groupId }, query] = await Promise.all([params, searchParams]);
+  const group = await getGroupOr404(groupId);
+  const period = getPeriod(typeof query.period === "string" ? query.period : undefined);
+
+  return <main className="shell">
+    <SiteNav backHref={`/app/groups/${groupId}`} />
+    <GroupHeading group={group} />
+    <SessionCalendar groupId={groupId} sessions={group.sessions} timezone={group.timezone} />
+    <PublicTable group={group} period={period} base={`/app/groups/${groupId}/leaderboard`} playerBase={`/app/groups/${groupId}/players`} />
+  </main>;
+}

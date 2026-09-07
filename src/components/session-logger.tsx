@@ -108,6 +108,7 @@ export function SessionLogger({ group }: { group: Group }) {
   const [addingPlayer, setAddingPlayer] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState("");
   const [playerMessage, setPlayerMessage] = useState("");
+  const [navigationLabel, setNavigationLabel] = useState("");
   const key = `ibpy-session-${group.id}`;
 
   useEffect(() => {
@@ -278,7 +279,10 @@ export function SessionLogger({ group }: { group: Group }) {
     setError("");
     const index = steps.indexOf(draft.step);
     if (index > 0) setDraft((current) => ({ ...current, step: steps[index - 1] }));
-    else router.back();
+    else {
+      setNavigationLabel("Going back");
+      router.back();
+    }
   };
   const parsePaste = () => {
     setError("");
@@ -328,6 +332,8 @@ export function SessionLogger({ group }: { group: Group }) {
         return;
       }
       localStorage.removeItem(key);
+      setSaving(false);
+      setNavigationLabel("Opening leaderboard");
       router.push(`/app/groups/${group.id}/leaderboard?saved=1`);
     } catch (caught) {
       console.error("Session save request failed", caught);
@@ -342,7 +348,7 @@ export function SessionLogger({ group }: { group: Group }) {
 
   return (
     <>
-      <ActionOverlay active={saving} label="Saving session" />
+      <ActionOverlay active={saving || Boolean(navigationLabel)} label={saving ? "Saving session" : navigationLabel} />
       <div className="page-head compact">
         <p className="eyebrow">{group.name}</p>
         <h1>{draft.step === 1 ? "WHO PLAYED?" : draft.step === 2 ? "PICK TEAMS" : draft.step === 3 ? "LOG THE STATS" : "RECORD RESULT"}</h1>
