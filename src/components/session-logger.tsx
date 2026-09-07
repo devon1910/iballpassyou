@@ -337,7 +337,7 @@ export function SessionLogger({ group }: { group: Group }) {
       router.push(`/app/groups/${group.id}/leaderboard?saved=1`);
     } catch (caught) {
       console.error("Session save request failed", caught);
-      setError("The server did not complete the save. Your draft is safe—refresh and try again.");
+      setError("The server did not complete the save. Your draft is safe. Refresh and try again.");
     } finally {
       setSaving(false);
     }

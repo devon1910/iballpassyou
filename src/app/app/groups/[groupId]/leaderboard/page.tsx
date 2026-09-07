@@ -14,6 +14,6 @@ export default async function FullLeaderboard({ params, searchParams }: PageProp
     <SiteNav backHref={`/app/groups/${groupId}`} />
     <GroupHeading group={group} />
     <SessionCalendar groupId={groupId} sessions={group.sessions} timezone={group.timezone} />
-    <PublicTable group={group} period={period} base={`/app/groups/${groupId}/leaderboard`} playerBase={`/app/groups/${groupId}/players`} />
+    <PublicTable group={group} period={period} base={`/app/groups/${groupId}/leaderboard`} playerBase={`/app/groups/${groupId}/players`} allowCopy />
   </main>;
 }

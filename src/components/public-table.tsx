@@ -6,8 +6,8 @@ import { leaderboardFor } from "@/lib/view-data";
 import { shareText } from "@/lib/format";
 import type { Group, LeaderboardPeriod } from "@/types/domain";
 
-export function PublicTable({ group, period, base, playerBase }: { group: Group; period: LeaderboardPeriod; base: string; playerBase: string }) {
+export function PublicTable({ group, period, base, playerBase, allowCopy = false }: { group: Group; period: LeaderboardPeriod; base: string; playerBase: string; allowCopy?: boolean }) {
   const rows = leaderboardFor(group, period);
   const periodLabel = { month: "THIS MONTH", last_month: "LAST MONTH", year: "YEAR", all: "ALL TIME" }[period];
-  return <><PeriodSwitcher active={period} base={base} /><Leaderboard rows={rows} playerHref={(id) => `${playerBase}/${id}`} /><RatingNote /><CopyButton text={shareText(group, rows, periodLabel)} /></>;
+  return <><PeriodSwitcher active={period} base={base} /><Leaderboard rows={rows} playerHref={(id) => `${playerBase}/${id}`} /><RatingNote />{allowCopy ? <CopyButton text={shareText(group, rows, periodLabel)} /> : null}</>;
 }
