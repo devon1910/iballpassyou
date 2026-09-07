@@ -102,6 +102,9 @@ h2 { font-size: 25px; letter-spacing: -.035em; }
 .rating { text-align: right; font-size: 24px; letter-spacing: -.02em; }
 .empty { padding: 26px 0; color: var(--color-muted); border-block: 1px solid var(--color-hair); }
 .rating-note { color: var(--color-muted); font: 10px/1.6 var(--font-mono); margin: 18px 0 28px; }
+.leaderboard-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.leaderboard-actions .button { min-width: 0; }
+.share-message { margin: 10px 0 0; color: var(--color-lime); font: 11px var(--font-mono); }
 .section-row { display: flex; justify-content: space-between; align-items: center; margin: 42px 0 12px; }
 .section-row .section-label { margin: 0; }
 .list { border-top: 1px solid var(--color-hair); }

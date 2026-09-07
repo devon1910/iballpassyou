@@ -1,21 +1,50 @@
-# iballpassyou
+# iBallPassYou
 
-Mobile-first, multi-group casual football stats. Pick who showed up, record goals/assists and the result, see the group-local table, and copy the receipts back to WhatsApp.
+iBallPassYou is a mobile-first football record book for casual groups. It turns the familiar group-chat-to-pitch-to-group-chat routine into a proper, shared record: choose who played, capture the match, and keep a leaderboard everyone can understand.
 
-## Local setup
+It is deliberately lightweight. Players do not need accounts, admins do not need league-management software, and the important facts stay close to the people who created them.
 
-Requires Node 22+ and a Supabase project. Copy `.env.example` to `.env.local`, add the project URL and anon key, then:
+## What makes it rich
+
+- Multi-group support, with one admin account able to run several football groups.
+- Public leaderboards that anyone can explore, plus private groups and unlisted share links.
+- Session logging in three formats: player stats only, fixed two-team results, or flexible multi-team set play.
+- Fast roster selection, new-player addition, team assignment shortcuts, reusable team names, and clear unassigned-player feedback.
+- Goals, assists, attendance, set wins, and own-goal records.
+- Group-local rankings with monthly, previous-month, yearly, and all-time views.
+- A match calendar that marks recorded days with football icons and links straight to each session.
+- Full leaderboard copying for admins, designed for sharing back to WhatsApp or the group chat.
+- Helpful loading overlays, active navigation states, inline explanations, date/time pickers, and reduced-motion support.
+- A friendly feedback form for suggestions, questions, and error reports.
+
+## Product principles
+
+The app records facts rather than inventing them. Unknown winners do not receive bonuses, team assignments remain optional until they are known, and historical records are imported without fabricating goal events or assists. Every group is isolated from every other group at the database level.
+
+## Local development
+
+Requires Node 22+ and a Supabase project.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Without Supabase variables the application deliberately runs against representative demo data, so every read route and the complete session-entry interaction can be reviewed locally. Production writes require Supabase.
+Create `.env.local` from `.env.example` and provide the public Supabase URL and publishable or anon key. Keep service-role keys server-only. The app can render representative local fallback data when Supabase is not configured, but production reads and writes use Supabase.
 
-## Database
+## Database and security
 
-Install the Supabase CLI, start its local stack, and apply the migration:
+The Supabase schema is multi-tenant by design:
+
+- Every player, session, team, and appearance belongs to a group.
+- Composite foreign keys prevent cross-group references.
+- Row-level security protects every application table.
+- Anonymous users receive only the narrow public read APIs needed for public pages.
+- Admin reads and writes require an authenticated group owner or admin membership.
+- Session saves and group creation run through transactional PostgreSQL commands.
+- Public payloads never include private share tokens.
+
+Apply migrations with the Supabase CLI:
 
 ```bash
 supabase start
@@ -23,11 +52,20 @@ supabase db reset
 psql "$LOCAL_DATABASE_URL" -f supabase/tests/database.sql
 ```
 
-The schema stores only raw attendance, team assignment, goals, assists, and set-win facts. Composite foreign keys make cross-group relationships impossible. RLS is enabled on every application table; anonymous roles have no raw-table reads. Public Explore, public-group, and unlisted share-token access use narrow `security definer` RPCs. `create_group(jsonb)` and `save_session(jsonb)` are the only aggregate write commands and each runs as one PostgreSQL transaction. Every server action authenticates again through Supabase/RLS.
+Dates are stored as `timestamptz`; display and calendar boundaries use each group’s IANA timezone. Weekdays use ISO numbering, Monday `1` through Sunday `7`.
 
-ISO weekday numbering is used everywhere: Monday `1` through Sunday `7`. Session timestamps are `timestamptz`; calendar boundaries and local form values use the group's IANA timezone.
+## Historical data import
 
-## Checks
+`scripts/import-spartan.ts` is a dry-run-capable importer for the historical football records used to seed the first live group. It normalizes agreed player aliases, preserves distinct people with similar names, imports attendance, goals, and assists, and never invents winners or goal-event attribution.
+
+```bash
+npm run import:spartan -- --dry-run
+npm run import:spartan
+```
+
+Stable UUIDs make reruns idempotent. The importer prints source and destination totals and stops if reconciliation fails.
+
+## Quality checks
 
 ```bash
 npm run lint
@@ -37,31 +75,14 @@ npm run build
 npm run test:e2e
 ```
 
-The E2E suite starts the production server from `playwright.config.ts`. Database security assertions live in `supabase/tests/database.sql` and require the local Supabase stack.
-
-## Import SpartanStats
-
-The predecessor uses global `players`, date-unique `sessions`, and per-session `stats`; later migrations add goal events and goalkeeper details. The importer intentionally brings only V1 facts: players, sessions, attendance, goals, and assists. Unknown historical winners receive no win bonus.
-
-Set the server-only `SPARTAN_*` and destination service-role variables, then reconcile without writes:
-
-```bash
-npm run import:spartan -- --dry-run
-npm run import:spartan
-```
-
-Stable UUIDs make every entity idempotent. The command prints source/destination player, session, appearance, goal, and assist totals and fails if they do not reconcile. The imported group is private unless `SPARTAN_GROUP_VISIBILITY=public`.
-
-## Deployment
-
-Apply `supabase/migrations` through CI or `supabase db push`, configure the public Supabase variables and `NEXT_PUBLIC_SITE_URL` on the Next.js host, and keep `SUPABASE_SERVICE_ROLE_KEY` server-only (it is used only by the import CLI). Configure the Auth site URL and `/auth/callback` redirect in Supabase.
-
 ## Architecture
 
-- `src/app`: App Router pages, public/share surfaces, auth callback, and thin server actions.
-- `src/components`: mobile interaction and table primitives; client components are limited to forms/copy controls.
-- `src/lib`: rating, ranking, timezone, roster parsing, Supabase clients, and the server read layer.
-- `supabase/migrations`: relational schema, tenant constraints, RLS, transactional commands, and narrow read APIs.
-- `scripts/import-spartan.ts`: dry-run capable predecessor migration.
+- `src/app`: App Router pages, authentication callback, public surfaces, and server actions.
+- `src/components`: focused interaction primitives for forms, rosters, sessions, rankings, calendars, feedback, and navigation.
+- `src/lib`: domain types, rankings, formatting, timezone handling, data reads, and Supabase clients.
+- `supabase/migrations`: relational schema, constraints, RLS policies, transactional commands, and public read APIs.
+- `scripts/import-spartan.ts`: repeatable historical data import.
 
-Intentionally deferred: global rankings, player identities/accounts, goal events, analytics, chat/social features, schedule-specific tables, automatic team balancing, and every other league-management feature outside the brief.
+## Deliberately out of scope
+
+Global rankings, player accounts, analytics, chat, social feeds, automatic team balancing, and full league-management features are intentionally deferred so casual match recording stays quick and human.
