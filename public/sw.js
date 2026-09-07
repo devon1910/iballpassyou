@@ -7,6 +7,7 @@ self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET" || new URL(request.url).origin !== self.location.origin) return;
   const path = new URL(request.url).pathname;
+  if (path.endsWith(".mp4")) return;
   if (!STATIC_PREFIXES.some((prefix) => path.startsWith(prefix))) return;
   event.respondWith(caches.open(CACHE_NAME).then(async (cache) => {
     const cached = await cache.match(request);

@@ -56,7 +56,7 @@ h2 { font-size: 25px; letter-spacing: -.035em; }
 .button-row > .input, .button-row > .select { flex: 1 1 150px; min-width: 0; }
 .hero-action { margin: 26px 0 40px; }
 .landing { min-height: 100svh; position: relative; overflow: hidden; }
-.landing-photo { object-fit: cover; object-position: center 60%; filter: grayscale(.85) contrast(1.08) brightness(.55); }
+.landing-video { position: absolute; inset: -4%; width: 108%; height: 108%; object-fit: cover; object-position: center; filter: grayscale(.72) contrast(1.08) brightness(.48) blur(4px); transform: scale(1.02); }
 .photo-shade { position: absolute; inset: 0; background: linear-gradient(180deg,rgba(18,20,14,.52),rgba(18,20,14,.88) 62%,#12140e); }
 .landing-inner { position: relative; z-index: 1; min-height: 100svh; width: min(100%, 980px); margin: auto; padding: 26px 22px; display: flex; flex-direction: column; }
 .brand-hero img { width: min(72vw, 330px); height: auto; }
@@ -278,4 +278,4 @@ h2 { font-size: 25px; letter-spacing: -.035em; }
 @keyframes icon-spin { to { transform: rotate(360deg); } }
 @media (min-width: 700px) { .landing-actions { flex-direction: row; align-items: center; max-width: none; } .landing-actions .button { width: 260px; } .cards { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 440px) { .session-action { grid-template-columns: 1fr; } .session-action .button, .session-action .text-link { width: 100%; justify-content: center; } .confirm-actions { justify-content: stretch; } .confirm-actions > * { flex: 1; } }
-@media (prefers-reduced-motion: reduce) { *,*::before,*::after { scroll-behavior: auto!important; animation-duration: .01ms!important; animation-iteration-count: 1!important; } }
+@media (prefers-reduced-motion: reduce) { *,*::before,*::after { scroll-behavior: auto!important; animation-duration: .01ms!important; animation-iteration-count: 1!important; } .landing-video { display: none; } }

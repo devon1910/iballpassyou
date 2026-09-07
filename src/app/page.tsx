@@ -1,10 +1,9 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Brand } from "@/components/brand";
 
 export default function Home() {
   return <main className="landing">
-    <Image className="landing-photo" src="/brand/pitch-default.jpeg" alt="Players on a football pitch under floodlights" fill priority sizes="100vw" />
+    <video className="landing-video" autoPlay muted loop playsInline preload="metadata" poster="/brand/pitch-default.jpeg" aria-hidden="true"><source src="/brand/iballpassyou-introvideo.mp4" type="video/mp4" /></video>
     <div className="photo-shade" />
     <div className="landing-inner">
       <Brand hero />
