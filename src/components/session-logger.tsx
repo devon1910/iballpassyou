@@ -71,7 +71,7 @@ function SessionDateField({ value, max, onChange }: { value: string; max: string
         <svg className="date-picker-icon" aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="16" rx="1" /><path d="M7 3v4M17 3v4M3 10h18" /></svg>
         <input className="date-picker-native" type="date" lang="en-GB" required max={max} value={value} aria-label="Session date, DD/MM/YY" aria-describedby="session-date-format" onChange={(event) => { const next = event.target.value; if (!next || next <= max) onChange(next); }} />
       </span>
-      <small className="date-format-hint" id="session-date-format">DD/MM/YY · future dates unavailable</small>
+      <small className="date-format-hint" id="session-date-format">DD/MM/YY</small>
     </label>
   );
 }
