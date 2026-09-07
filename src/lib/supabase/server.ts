@@ -8,6 +8,7 @@ export async function createClient() {
   if (!url || !key) return null;
   const store = await cookies();
   return createServerClient(url, key, {
+    global: { fetch: (input, init) => fetch(input, { ...init, signal: init?.signal ? AbortSignal.any([init.signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000) }) },
     cookies: {
       getAll: () => store.getAll(),
       setAll: (values) => {
@@ -16,4 +17,3 @@ export async function createClient() {
     },
   });
 }
-

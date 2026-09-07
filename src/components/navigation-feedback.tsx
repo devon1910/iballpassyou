@@ -13,10 +13,14 @@ export function NavigationFeedback() {
   const active = pendingFrom === routeKey;
 
   useEffect(() => {
+    if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+  }, [routeKey]);
+
+  useEffect(() => {
     const begin = () => {
       if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
       setPendingFrom(routeKey);
-      timeoutRef.current = window.setTimeout(() => setPendingFrom(null), 12000);
+      timeoutRef.current = window.setTimeout(() => setPendingFrom(null), 6000);
     };
     const handleClick = (event: MouseEvent) => {
       if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
