@@ -1,7 +1,7 @@
 "use server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { localDateTimeToIso } from "@/lib/time";
+import { isFutureLocalDate, localDateTimeToIso } from "@/lib/time";
 
 const team=z.object({client_key:z.string().min(1),label:z.string().trim().min(1).max(40),set_wins:z.number().int().min(0)});
 const player=z.object({player_id:z.string().uuid().optional(),name:z.string().trim().min(1).max(80).optional(),team_key:z.string().optional(),goals:z.number().int().min(0),assists:z.number().int().min(0)}).refine(v=>v.player_id||v.name,"Player identity required");
@@ -19,6 +19,7 @@ export async function saveSessionAction(input:SessionActionInput){
   try{
     const checked=session.safeParse(input);
     if(!checked.success)return {ok:false as const,error:"Check the roster, teams, and stats, then try again."};
+    if(isFutureLocalDate(checked.data.date,checked.data.timezone))return {ok:false as const,error:"Session date can’t be in the future."};
     const supabase=await createClient();
     if(!supabase)return {ok:true as const,id:input.client_session_id,demo:true};
     const command={...checked.data,kickoff_at:localDateTimeToIso(checked.data.date,checked.data.time,checked.data.timezone)};

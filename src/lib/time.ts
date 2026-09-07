@@ -35,6 +35,10 @@ export function localDateInput(now: Date, timezone: string) {
   return new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: timezone }).format(now);
 }
 
+export function isFutureLocalDate(date: string, timezone: string, now = new Date()) {
+  return date > localDateInput(now, timezone);
+}
+
 export function localDateTimeToIso(date: string, time: string, timezone: string) {
   const probe = new Date(`${date}T${time}:00Z`);
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -44,4 +48,3 @@ export function localDateTimeToIso(date: string, time: string, timezone: string)
   const offsetMs = viewedAsUtc - probe.getTime();
   return new Date(probe.getTime() - offsetMs).toISOString();
 }
-

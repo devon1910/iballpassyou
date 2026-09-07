@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Group, SessionFormat } from "@/types/domain";
 import { localDateInput, preferredSchedule } from "@/lib/time";
@@ -59,9 +59,27 @@ function FormatHelp() {
   );
 }
 
+function SessionDateField({ value, max, onChange }: { value: string; max: string; onChange: (value: string) => void }) {
+  const [year, month, day] = value.split("-");
+  const displayDate = year && month && day ? `${day}/${month}/${year.slice(-2)}` : "DD/MM/YY";
+
+  return (
+    <label className="field date-field">
+      <span className="field-label">Session date</span>
+      <span className="date-picker-control">
+        <span className="date-picker-value" aria-hidden="true">{displayDate}</span>
+        <svg className="date-picker-icon" aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="16" rx="1" /><path d="M7 3v4M17 3v4M3 10h18" /></svg>
+        <input className="date-picker-native" type="date" lang="en-GB" required max={max} value={value} aria-label="Session date, DD/MM/YY" aria-describedby="session-date-format" onChange={(event) => { const next = event.target.value; if (!next || next <= max) onChange(next); }} />
+      </span>
+      <small className="date-format-hint" id="session-date-format">DD/MM/YY · future dates unavailable</small>
+    </label>
+  );
+}
+
 export function SessionLogger({ group }: { group: Group }) {
   const router = useRouter();
   const schedule = preferredSchedule(group.schedules, new Date(), group.timezone);
+  const latestSessionDate = localDateInput(new Date(), group.timezone);
   const activePlayers = useMemo(() => group.players.filter((player) => player.active), [group.players]);
   const lastSession = group.sessions[0];
   const lastPlayerIds = useMemo(
@@ -72,14 +90,14 @@ export function SessionLogger({ group }: { group: Group }) {
     clientSessionId: crypto.randomUUID(),
     step: 1,
     mode: activePlayers.length ? "roster" : "paste",
-    date: localDateInput(new Date(), group.timezone),
+    date: latestSessionDate,
     time: schedule?.kickoffTime ?? "18:00",
     format: group.defaultSessionFormat,
     players: activePlayers.map((player) => ({ id: player.id, name: player.name, selected: false, team: -1, goals: 0, assists: 0 })),
     paste: "",
     labels: ["Team 1", "Team 2"],
     wins: [0, 0],
-  }), [activePlayers, group.defaultSessionFormat, group.timezone, schedule?.kickoffTime]);
+  }), [activePlayers, group.defaultSessionFormat, latestSessionDate, schedule?.kickoffTime]);
   const [draft, setDraft] = useState(initial);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
@@ -87,6 +105,9 @@ export function SessionLogger({ group }: { group: Group }) {
   const [activeTeam, setActiveTeam] = useState(0);
   const [teamSheet, setTeamSheet] = useState("");
   const [teamMessage, setTeamMessage] = useState("");
+  const [addingPlayer, setAddingPlayer] = useState(false);
+  const [newPlayerName, setNewPlayerName] = useState("");
+  const [playerMessage, setPlayerMessage] = useState("");
   const key = `ibpy-session-${group.id}`;
 
   useEffect(() => {
@@ -101,6 +122,7 @@ export function SessionLogger({ group }: { group: Group }) {
           restored.labels = labels.slice(0, count);
           restored.wins = Array.from({ length: count }, (_, index) => Number(restored.wins?.[index] ?? 0));
           restored.players = restored.players.map((player) => ({ ...player, team: player.team >= 0 && player.team < count ? player.team : -1 }));
+          if (restored.date > latestSessionDate) restored.date = latestSessionDate;
           if (!activePlayers.length && restored.mode === "roster") restored.mode = "paste";
           setDraft(restored);
         } catch {
@@ -110,7 +132,7 @@ export function SessionLogger({ group }: { group: Group }) {
       setReady(true);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [activePlayers.length, initial, key]);
+  }, [activePlayers.length, initial, key, latestSessionDate]);
 
   useEffect(() => {
     if (ready) localStorage.setItem(key, JSON.stringify(draft));
@@ -131,6 +153,25 @@ export function SessionLogger({ group }: { group: Group }) {
   const steps = draft.format === "none" ? [1, 3, 4] : [1, 2, 3, 4];
   const updatePlayer = (id: string, update: Partial<DraftPlayer>) => {
     setDraft((current) => ({ ...current, players: current.players.map((player) => player.id === id ? { ...player, ...update } : player) }));
+  };
+  const addNewPlayer = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const name = newPlayerName.trim();
+    if (!name) return;
+    const normalized = name.toLocaleLowerCase();
+    const rosterPlayer = group.players.find((player) => player.name.trim().toLocaleLowerCase() === normalized);
+    const draftPlayer = draft.players.find((player) => player.name.trim().toLocaleLowerCase() === normalized);
+    if (draftPlayer) {
+      updatePlayer(draftPlayer.id, { selected: true });
+      setPlayerMessage(`${draftPlayer.name} is already listed and has been selected.`);
+    } else if (rosterPlayer) {
+      setDraft((current) => ({ ...current, players: [...current.players, { id: rosterPlayer.id, name: rosterPlayer.name, selected: true, team: -1, goals: 0, assists: 0 }] }));
+      setPlayerMessage(`${rosterPlayer.name} is already on the roster and has been selected.`);
+    } else {
+      setDraft((current) => ({ ...current, players: [...current.players, { id: `new-${crypto.randomUUID()}`, name, selected: true, team: -1, goals: 0, assists: 0, isNew: true }] }));
+      setPlayerMessage(`${name} added to this session.`);
+    }
+    setNewPlayerName("");
   };
   const changeFormat = (format: SessionFormat) => {
     if (format === "fixed_teams") setActiveTeam((current) => Math.min(current, 1));
@@ -309,7 +350,7 @@ export function SessionLogger({ group }: { group: Group }) {
 
       {draft.step === 1 && <section>
         <div className="form-stack" style={{ marginBottom: 22 }}>
-          <label className="field"><span className="field-label">Session date</span><input className="input" type="date" value={draft.date} onChange={(event) => setDraft((current) => ({ ...current, date: event.target.value }))} /></label>
+          <SessionDateField value={draft.date} max={latestSessionDate} onChange={(date) => setDraft((current) => ({ ...current, date }))} />
           <label className="field"><span className="field-label">Kickoff time</span><input className="input" type="time" value={draft.time} onChange={(event) => setDraft((current) => ({ ...current, time: event.target.value }))} /></label>
           <div className="field">
             <span className="field-label with-tip">Format <FormatHelp /></span>
@@ -325,11 +366,11 @@ export function SessionLogger({ group }: { group: Group }) {
           <button type="button" className={draft.mode === "paste" ? "active" : ""} onClick={() => setDraft((current) => ({ ...current, mode: "paste" }))}>Paste list</button>
         </div>
         {draft.mode === "roster" ? <>
-          <div className="roster-list">{draft.players.filter((player) => !player.isNew).map((player) => <label className="roster-row" key={player.id}><input type="checkbox" checked={player.selected} onChange={(event) => updatePlayer(player.id, { selected: event.target.checked })} /><span className="toggle-box">✓</span><span className="roster-name">{player.name}</span></label>)}</div>
+          <div className="roster-list">{draft.players.map((player) => <label className="roster-row" key={player.id}><input type="checkbox" checked={player.selected} onChange={(event) => updatePlayer(player.id, { selected: event.target.checked })} /><span className="toggle-box">✓</span><span className="roster-name">{player.name}</span>{player.isNew && <span className="mono muted roster-status">New player</span>}</label>)}</div>
           <p className="count">{selected.length} playing</p>
           <div className="shortcuts">
             <button className="chip" type="button" disabled={!lastPlayerIds.size} title={lastPlayerIds.size ? undefined : "No previous session yet"} onClick={() => setDraft((current) => ({ ...current, players: current.players.map((player) => ({ ...player, selected: lastPlayerIds.has(player.id) })) }))}>Use last session</button>
-            <button className="chip" type="button" disabled={!activePlayers.length} onClick={() => setDraft((current) => ({ ...current, players: current.players.map((player) => ({ ...player, selected: !player.isNew })) }))}>Select all</button>
+            <button className="chip" type="button" disabled={!draft.players.length} onClick={() => setDraft((current) => ({ ...current, players: current.players.map((player) => ({ ...player, selected: true })) }))}>Select all</button>
             <button className="chip" type="button" disabled={!selected.length} onClick={() => setDraft((current) => ({ ...current, players: current.players.map((player) => ({ ...player, selected: false })) }))}>Clear</button>
           </div>
         </> : <>
@@ -337,6 +378,15 @@ export function SessionLogger({ group }: { group: Group }) {
           <button className="button" type="button" disabled={!draft.paste.trim()} onClick={parsePaste} style={{ marginTop: 12 }}>Check names</button>
           {selected.length > 0 && <div className="roster-list" style={{ marginTop: 20 }}>{selected.map((player) => <div className="roster-row" key={player.id}><span className="toggle-box selected">✓</span><span>{player.name}</span><span className="mono muted roster-status">{player.isNew ? "New player" : "Existing"}</span></div>)}</div>}
         </>}
+        <div className="add-player-control">
+          {!addingPlayer ? <button className="add-player-trigger" type="button" onClick={() => { setAddingPlayer(true); setPlayerMessage(""); }}><span aria-hidden="true">+</span> Add new player</button> : <form className="add-player-form" onSubmit={addNewPlayer}>
+            <label className="sr-only" htmlFor="new-session-player">New player name</label>
+            <input id="new-session-player" className="input" autoFocus maxLength={80} value={newPlayerName} onChange={(event) => setNewPlayerName(event.target.value)} placeholder="Player name" />
+            <button className="button primary small" type="submit" disabled={!newPlayerName.trim()}>Add</button>
+            <button className="add-player-close" type="button" aria-label="Close add player" onClick={() => { setAddingPlayer(false); setNewPlayerName(""); }}>×</button>
+          </form>}
+          {playerMessage && <p className="add-player-message" role="status">{playerMessage}</p>}
+        </div>
       </section>}
 
       {draft.step === 2 && <section>
