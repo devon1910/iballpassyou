@@ -122,6 +122,22 @@ h2 { font-size: 25px; letter-spacing: -.035em; }
 .explore-hero img { object-fit: cover; object-position: center 60%; filter: grayscale(.85) contrast(1.08) brightness(.55); }
 .explore-hero .photo-shade { background: linear-gradient(180deg,rgba(18,20,14,.35),rgba(18,20,14,.92)); }
 .explore-hero h1 { position: absolute; z-index: 2; left: 20px; bottom: 15px; color: var(--color-paper); margin: 0; }
+.featured-goals { margin-top: 44px; }
+.featured-goals-head { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 18px; }
+.featured-goals-head .section-label { color: #65695c; }
+.featured-goals-head h2 { margin: 0; font-size: clamp(27px,6vw,38px); }
+.featured-goals-head > p { max-width: 330px; margin: 0; color: #65695c; font-size: 13px; line-height: 1.5; }
+.goal-reel { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(245px,76vw); gap: 12px; margin-inline: -20px; padding: 0 20px 12px; overflow-x: auto; overscroll-behavior-inline: contain; scroll-snap-type: inline mandatory; scrollbar-width: thin; scrollbar-color: #8b8f80 transparent; }
+.goal-card { min-width: 0; overflow: hidden; scroll-snap-align: start; background: var(--color-ink); color: var(--color-paper); }
+.goal-video { position: relative; aspect-ratio: 4 / 5; display: grid; place-items: center; overflow: hidden; background: #050604; }
+.goal-video video { width: 100%; height: 100%; display: block; object-fit: contain; background: #050604; }
+.goal-number { position: absolute; top: 10px; left: 10px; padding: 5px 7px; background: var(--color-lime); color: var(--color-ink); font: 700 10px var(--font-mono); pointer-events: none; }
+.goal-caption { min-height: 84px; padding: 15px 16px 17px; border-top: 1px solid #292c22; }
+.goal-caption p { margin: 0 0 5px; color: #9da191; font: 9px var(--font-mono); letter-spacing: .11em; text-transform: uppercase; }
+.goal-caption h3 { margin: 0; font-size: 22px; text-transform: uppercase; }
+.featured-goals-link { margin-top: 10px; color: #515548; }
+.explore-groups-head { margin-top: 48px; margin-bottom: 0; border-bottom: 1px solid var(--color-hair-lt); }
+.explore-groups-head .section-label { margin-bottom: 12px; color: #65695c; }
 .cards { display: grid; gap: 14px; padding-top: 22px; }
 .group-card { border: 1px solid var(--color-hair-lt); padding: 22px; transition: transform .18s ease, box-shadow .18s ease; }
 .group-card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(18,20,14,.12); }
@@ -276,6 +292,7 @@ h2 { font-size: 25px; letter-spacing: -.035em; }
 .action-loader img { animation: icon-spin 1.05s cubic-bezier(.55,.05,.45,.95) infinite; }
 .inline-spinner { width: 16px; height: 16px; display: inline-block; margin-right: 8px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; vertical-align: -3px; animation: icon-spin .7s linear infinite; }
 @keyframes icon-spin { to { transform: rotate(360deg); } }
-@media (min-width: 700px) { .landing-actions { flex-direction: row; align-items: center; max-width: none; } .landing-actions .button { width: 260px; } .cards { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 700px) { .landing-actions { flex-direction: row; align-items: center; max-width: none; } .landing-actions .button { width: 260px; } .goal-reel { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(3,minmax(0,1fr)); margin-inline: 0; padding: 0; overflow: visible; } .cards { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .featured-goals-head { display: block; } .featured-goals-head > p { margin-top: 10px; } }
 @media (max-width: 440px) { .session-action { grid-template-columns: 1fr; } .session-action .button, .session-action .text-link { width: 100%; justify-content: center; } .confirm-actions { justify-content: stretch; } .confirm-actions > * { flex: 1; } }
 @media (prefers-reduced-motion: reduce) { *,*::before,*::after { scroll-behavior: auto!important; animation-duration: .01ms!important; animation-iteration-count: 1!important; } .landing-video { display: none; } }
