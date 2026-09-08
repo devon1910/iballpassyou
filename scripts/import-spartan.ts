@@ -27,6 +27,11 @@ async function main() {
   const players = await rows<OldPlayer>("players");
   const sessions = await rows<OldSession>("sessions");
   const stats = await rows<OldStat>("stats");
+  const sessionsById = new Map(sessions.map((session) => [session.id, session]));
+  const invalidSessionDates = sessions.filter((session) => !/^\d{4}-\d{2}-\d{2}$/.test(session.session_date));
+  if (invalidSessionDates.length) throw new Error(`Found ${invalidSessionDates.length} session(s) with an invalid session_date.`);
+  const orphanedStats = stats.filter((stat) => !sessionsById.has(stat.session_id));
+  if (orphanedStats.length) throw new Error(`Found ${orphanedStats.length} stat row(s) whose session does not exist.`);
   const canonicalName = (name: string) => aliases[name.trim().toLocaleLowerCase()] ?? name.trim();
   const canonicalKey = (name: string) => canonicalName(name).toLocaleLowerCase();
   const playerByOldId = new Map(players.map((p) => [p.id, canonicalKey(p.name)]));
@@ -35,9 +40,40 @@ async function main() {
   const aggregated = new Map<string, { group_id: string; session_id: string; player_id: string; session_team_id: null; goals: number; assists: number }>();
   for (const stat of stats) { const key = playerByOldId.get(stat.player_id); if (!key) throw new Error(`Stat references unknown player ${stat.player_id}`); const aggregateKey = `${stat.session_id}:${key}`; const prior = aggregated.get(aggregateKey) ?? { group_id: groupId, session_id: stableUuid(`session:${stat.session_id}`), player_id: stableUuid(`player:${key}`), session_team_id: null, goals: 0, assists: 0 }; prior.goals += Number(stat.goals) || 0; prior.assists += Number(stat.assists) || 0; aggregated.set(aggregateKey, prior); }
   const appearances = [...aggregated.values()];
-  const report = { sourcePlayers: players.length, players: canonicalPlayers.length, sessions: sessions.length, appearances: appearances.length, goals: appearances.reduce((n, s) => n + s.goals, 0), assists: appearances.reduce((n, s) => n + s.assists, 0) };
+  const sessionDates = sessions.map((session) => session.session_date).sort();
+  const sessionsByMonth = sessionDates.reduce<Record<string, number>>((months, date) => {
+    const month = date.slice(0, 7);
+    months[month] = (months[month] ?? 0) + 1;
+    return months;
+  }, {});
+  const report = { sourcePlayers: players.length, players: canonicalPlayers.length, sessions: sessions.length, earliestSession: sessionDates[0] ?? "none", latestSession: sessionDates.at(-1) ?? "none", appearances: appearances.length, goals: appearances.reduce((n, s) => n + s.goals, 0), assists: appearances.reduce((n, s) => n + s.assists, 0) };
   console.log(`${dryRun ? "DRY RUN" : "IMPORT"} · Spartan`); console.table(report);
-  if (dryRun) { console.log("No destination writes performed."); return; }
+  console.log("Source sessions by month:"); console.table(sessionsByMonth);
+  if (dryRun) {
+    const expectedSessionIds = new Set(sessions.map((session) => stableUuid(`session:${session.id}`)));
+    const [{ data: destinationSessions, error: sessionsError }, { data: destinationStats, error: statsError }] = await Promise.all([
+      nextDb.from("sessions").select("id,kickoff_at").eq("group_id", groupId).order("kickoff_at"),
+      nextDb.from("session_players").select("session_id,goals,assists").eq("group_id", groupId),
+    ]);
+    if (sessionsError) throw sessionsError;
+    if (statsError) throw statsError;
+    const importedSessions = (destinationSessions ?? []).filter((session) => expectedSessionIds.has(session.id));
+    const importedSessionIds = new Set(importedSessions.map((session) => session.id));
+    const importedStats = (destinationStats ?? []).filter((stat) => importedSessionIds.has(stat.session_id));
+    const importedDates = importedSessions.map((session) => session.kickoff_at.slice(0, 10)).sort();
+    console.log("Existing destination data for this import:");
+    console.table({
+      sessions: importedSessions.length,
+      missingSessions: sessions.length - importedSessions.length,
+      earliestSession: importedDates[0] ?? "none",
+      latestSession: importedDates.at(-1) ?? "none",
+      appearances: importedStats.length,
+      goals: importedStats.reduce((total, stat) => total + stat.goals, 0),
+      assists: importedStats.reduce((total, stat) => total + stat.assists, 0),
+    });
+    console.log("No destination writes performed.");
+    return;
+  }
   const visibility = process.env.SPARTAN_GROUP_VISIBILITY === "public" ? "public" : "private";
   let result = await nextDb.from("groups").upsert({ id: groupId, name: "Spartan", timezone: "Africa/Lagos", default_session_format: "fixed_teams", visibility, public_slug: visibility === "public" ? "spartan" : null }, { onConflict: "id" }); if (result.error) throw result.error;
   result = await nextDb.from("group_members").upsert({ group_id: groupId, user_id: ownerId, role: "owner" }, { onConflict: "group_id,user_id" }); if (result.error) throw result.error;
