@@ -4,7 +4,6 @@ import { PlayerDetail } from "./player-detail";
 import type { FootballSession, Group } from "@/types/domain";
 
 const playerId = "player-1";
-
 function session(id: string, kickoffAt: string): FootballSession {
   return {
     id,
