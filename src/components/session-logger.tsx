@@ -4,7 +4,7 @@ import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Group, SessionFormat } from "@/types/domain";
 import { localDateInput, preferredSchedule } from "@/lib/time";
-import { matchRoster } from "@/lib/roster";
+import { applyPastedRoster, matchRoster } from "@/lib/roster";
 import { parseTeamSheet, shuffledTeamAssignments, unassignedPlayersLabel } from "@/lib/teams";
 import { saveSessionAction } from "@/app/app/actions";
 import { ActionOverlay } from "@/components/action-overlay";
@@ -292,22 +292,13 @@ export function SessionLogger({ group }: { group: Group }) {
   };
   const parsePaste = () => {
     setError("");
-    const matched = matchRoster(draft.paste, group.players);
-    const ambiguous = matched.filter((row) => row.status === "ambiguous");
+    const result = applyPastedRoster(draft.paste, draft.players, group.players);
+    const ambiguous = result.ambiguous;
     if (ambiguous.length) {
       setError(`Check these ambiguous names: ${ambiguous.map((row) => row.input).join(", ")}.`);
       return;
     }
-    const existing = new Set(draft.players.map((player) => player.id));
-    const additions: DraftPlayer[] = [];
-    for (const row of matched) {
-      if (row.status === "matched") updatePlayer(row.player.id, { selected: true });
-      else {
-        const id = `new-${row.input.toLowerCase().replace(/\W+/g, "-")}`;
-        if (!existing.has(id)) additions.push({ id, name: row.input, selected: true, team: 0, goals: 0, assists: 0, isNew: true });
-      }
-    }
-    setDraft((current) => ({ ...current, players: [...current.players, ...additions] }));
+    setDraft((current) => ({ ...current, players: applyPastedRoster(current.paste, current.players, group.players).players }));
   };
   const save = async () => {
     const cleanLabels = draft.labels.map((label) => label.trim());
