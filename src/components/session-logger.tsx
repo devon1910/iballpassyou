@@ -340,7 +340,7 @@ export function SessionLogger({ group }: { group: Group }) {
       localStorage.removeItem(key);
       setSaving(false);
       setNavigationLabel("Opening leaderboard");
-      router.push(`/app/groups/${group.id}/leaderboard?saved=1`);
+      router.push(`/app/groups/${group.id}/leaderboard?saved=1&session=${encodeURIComponent(result.id)}`);
     } catch (caught) {
       console.error("Session save request failed", caught);
       setError("The server did not complete the save. Your draft is safe. Refresh and try again.");

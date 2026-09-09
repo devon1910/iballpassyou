@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PlayerHonours } from "@/components/player-honours";
 import { appearanceRating, uniqueWinningTeamId } from "@/lib/rating";
 import { leaderboardFor, playerSessions } from "@/lib/view-data";
 import type { Group } from "@/types/domain";
@@ -9,6 +10,7 @@ export function PlayerDetail({ group, playerId, backHref }: { group: Group; play
   const blocks = [["This month","month"],["This year","year"],["All time","all"]] as const;
   const history = playerSessions(group,playerId).sort((a,b) => b.kickoffAt.localeCompare(a.kickoffAt));
   return <><div className="page-head"><p className="eyebrow"><Link className="text-link" href={backHref}>← {group.name}</Link></p><h1>{player.name.toUpperCase()}</h1><p className="muted">{group.name}</p></div>
+    <PlayerHonours group={group} playerId={playerId} />
     {blocks.map(([label,period]) => { const row = leaderboardFor(group,period).find((r) => r.playerId === playerId); return <section key={period}><p className="section-label">{label}</p><div className="stats-grid">
       <div className="stat"><b>{row?.goals ?? 0}</b><span className="stat-label">Goals</span></div><div className="stat"><b>{row?.assists ?? 0}</b><span className="stat-label">Assists</span></div>
       <div className="stat"><b>{row?.appearances ?? 0}</b><span className="stat-label">Sessions</span></div><div className="stat"><b>{row?.sessionWins ?? 0}</b><span className="stat-label">Session wins</span></div>

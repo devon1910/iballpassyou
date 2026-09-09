@@ -1,5 +1,44 @@
 @import "tailwindcss";
 
+.player-honours { margin: 4px 0 36px; }
+.honours-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; align-items: start; }
+.honour-card { min-width: 0; padding: 20px; border: 1px solid var(--color-hair); background: #191c14; }
+.honour-card.earned { border-color: #75612d; background: radial-gradient(ellipse at top right, #44351d 0, #1d2016 75%); }
+.honour-card summary { display: grid; grid-template-columns: 1fr auto; gap: 12px; cursor: pointer; list-style: none; }
+.honour-card summary::-webkit-details-marker { display: none; }
+.honour-card svg { color: #e9bd62; }
+.honour-card:not(.earned) svg { color: var(--color-muted); }
+.honour-count { font: 800 32px/1 var(--font-display); letter-spacing: -.06em; }
+.honour-card strong, .honour-card small { grid-column: 1 / -1; }
+.honour-card strong { font-size: 16px; }
+.honour-card small { color: #b5b8aa; font-size: 11px; line-height: 1.5; }
+.honour-card > p { margin: 16px 0 0; color: #b5b8aa; font-size: 12px; line-height: 1.6; }
+.honour-history { list-style: none; margin: 0; padding: 0; }
+.honour-history li { display: grid; gap: 5px; border-top: 1px solid #484331; padding-top: 12px; margin-top: 16px; font-size: 12px; }
+.honour-history li span:last-child { color: #b5b8aa; font: 10px/1.5 var(--font-mono); }
+.personal-bests { padding: 20px; border: 1px solid var(--color-hair); }
+.personal-bests > .section-label { display: flex; align-items: center; gap: 8px; color: var(--color-lime); }
+.personal-best { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; }
+.personal-best + .personal-best { border-top: 1px solid var(--color-hair); }
+.personal-best small { display: block; color: #b5b8aa; font: 10px/1.6 var(--font-mono); margin-top: 6px; }
+.personal-best > span { white-space: nowrap; font: 11px var(--font-mono); color: var(--color-lime); }
+.personal-best b { font: 800 36px var(--font-display); }
+.personal-bests .rating-note { margin-bottom: 0; }
+.session-achievements { margin-bottom: 32px; }
+.motm-banner { display: flex; gap: 18px; align-items: center; padding: 24px; background: radial-gradient(ellipse at top right, #44351d, #1d2016); border: 1px solid #75612d; }
+.motm-banner > svg { flex-shrink: 0; color: #e9bd62; }
+.motm-banner h2 { margin-bottom: 8px; overflow-wrap: anywhere; }
+.motm-banner .eyebrow { color: #e9bd62; }
+.motm-banner .mono { font-size: 11px; line-height: 1.6; }
+.record-card { margin-top: 12px; padding: 22px; border: 1px solid var(--color-hair); background: #191c14; }
+.record-broken { border-color: var(--color-lime); background: radial-gradient(ellipse at top right, #303c13, #191c14 75%); }
+.record-heading { display: flex; gap: 8px; align-items: center; color: var(--color-lime); }
+.record-heading .eyebrow { margin: 0; color: inherit; }
+.record-score { margin: 8px 0; font: 12px var(--font-mono); }
+.record-score b { font: 800 56px/1 var(--font-display); letter-spacing: -.05em; }
+.record-card .muted { font-size: 12px; line-height: 1.6; }
+@media (max-width: 380px) { .honour-card { padding: 14px; } .honour-count { font-size: 28px; } .motm-banner { padding: 18px; gap: 12px; } }
+
 @theme {
   --color-ink: #12140e; --color-lime: #d6f531; --color-lime-ink: #6e7a22;
   --color-paper: #f4f3ec; --color-muted: #8b8f80; --color-hair: #2d3025; --color-hair-lt: #dedcd2;
