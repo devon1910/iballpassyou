@@ -15,6 +15,7 @@ test("balance selected attendees, complete profiles, lock, swap, and save normal
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "Balance Teams", exact: true }).click();
   await expect(page.getByRole("heading", { name: "No selected players are ready yet" })).toBeVisible();
+  await expect(page.getByText("Set each player up once and we reuse those details in future sessions; you can update them in Players any time.")).toBeVisible();
   await expect(page.getByText("You do not need to set up your whole historical roster.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Set up player profiles in Players" })).toHaveAttribute("href", "/app/groups/11111111-1111-4111-8111-111111111111/players");
   await expect(page.getByText("This is more than a random shuffle.")).toBeVisible();

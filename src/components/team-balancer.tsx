@@ -43,11 +43,11 @@ export function TeamBalancer({ groupId, players, labels, onProfile, onAssign, on
       <h2 id="balance-onboarding-title">Build fair teams from today’s {players.length} players</h2>
       <p>We compare team size, Skill Level, positions, and keeper coverage to create repeatable suggestions. This is more than a random shuffle.</p>
       <ol className="balance-steps"><li><span>1</span>Complete missing player details</li><li><span>2</span>Add any team locks</li><li><span>3</span>Choose and adjust a suggestion</li></ol>
-      <small>Skill Level is private, separate from Performance Rating, and never decides who plays.</small>
+      <small>Set each player up once, then reuse these private details whenever you balance teams. Skill Level is separate from Performance Rating and never decides who plays.</small>
     </section>}
     {missing.length > 0 && <section className="balance-setup-flow" aria-label="Missing balancing details">
       <div className="setup-flow-head"><div><p className="eyebrow">Player setup</p><h3>{noSelectedProfilesAreReady ? "No selected players are ready yet" : `${missing.length} player${missing.length === 1 ? "" : "s"} need balancing details`}</h3></div><span>{players.length - missing.length}/{players.length} ready</span></div>
-      <p>Balance Teams needs a primary position and Skill Level for every selected player. You do not need to set up your whole historical roster.</p>
+      <p>Balance Teams needs a primary position and Skill Level for every selected player. Set each player up once and we reuse those details in future sessions; you can update them in Players any time. You do not need to set up your whole historical roster.</p>
       <p>{noSelectedProfilesAreReady ? `Start with ${missing[0].name} below.` : "Only the selected players missing details are shown."} <Link className="text-link" href={`/app/groups/${groupId}/players`}>Set up player profiles in Players</Link> if you prefer to finish them there; this session draft is kept.</p>
       <BalancingProfileEditor key={missing[0].id} groupId={groupId} playerId={missing[0].id} name={missing[0].name} initial={missing[0].balancing} draftOnly={missing[0].isNew} continueLabel={missing.length > 1} onSaved={profile => { onProfile(missing[0].id, profile); invalidate(); }} />
       {missing.length > 1 && <p className="setup-next">Next: {missing.slice(1, 4).map(player => player.name).join(", ")}{missing.length > 4 ? ` and ${missing.length - 4} more` : ""}</p>}
