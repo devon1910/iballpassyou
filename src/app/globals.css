@@ -1,5 +1,20 @@
 @import "tailwindcss";
 
+.achievement-dialog { width: min(100% - 24px, 540px); max-height: 92dvh; padding: 22px; border: 1px solid var(--color-hair); background: var(--color-ink); color: var(--color-paper); margin: auto; overflow-y: auto; }
+.achievement-dialog::backdrop { background: rgb(0 0 0 / .8); backdrop-filter: blur(5px); }
+.achievement-dialog-head { display: flex; justify-content: space-between; align-items: start; gap: 12px; margin-bottom: 18px; }
+.achievement-dialog-head h2 { margin-bottom: 0; font-size: 23px; }
+.achievement-dialog-head .eyebrow { font-size: 9px; margin-bottom: 8px; }
+.achievement-close { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border: 1px solid var(--color-hair); background: transparent; color: var(--color-paper); cursor: pointer; }
+.achievement-preview { position: relative; margin: 18px auto; max-width: 360px; aspect-ratio: 3 / 4; border: 1px solid var(--color-hair); }
+.achievement-preview canvas { display: block; width: 100%; height: 100%; }
+.achievement-preview[aria-busy="true"] canvas { visibility: hidden; }
+.achievement-preview > p { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; }
+.achievement-share-actions { display: flex; gap: 10px; margin-top: 18px; }
+.achievement-share-actions .button, .personal-bests > .button { gap: 8px; }
+.achievement-dialog .rating-note { margin-bottom: 0; }
+.achievement-dialog .rating-note .text-link { font-size: 11px; }
+
 .player-honours { margin: 4px 0 36px; }
 .honours-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; align-items: start; }
 .honour-card { min-width: 0; padding: 20px; border: 1px solid var(--color-hair); background: #191c14; }

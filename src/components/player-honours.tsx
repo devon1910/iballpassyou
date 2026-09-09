@@ -1,5 +1,5 @@
 import { Medal, Trophy, Zap } from "lucide-react";
-import { ShareButton } from "@/components/share-button";
+import { ShareAchievements } from "@/components/share-achievements";
 import { FORMAT_LABELS, playerHonours, sessionMotm } from "@/lib/achievements";
 import type { Group } from "@/types/domain";
 
@@ -31,10 +31,12 @@ export function PlayerHonours({ group, playerId }: { group: Group; playerId: str
         </div>;
       }) : <p className="muted">Your first session sets the benchmark. Build from there.</p>}
       <p className="rating-note">Your highest session rating in each format. Goal +4 · Assist +2 · Session win +1. Honours and records update when results change.</p>
-      {shareBase && (motm.length > 0 || mvp.length > 0 || bests.length > 0) && <ShareButton
-        label="Share player achievements" title={`${player.name} · iBallPassYou honours`}
+      {shareBase && (motm.length > 0 || mvp.length > 0 || bests.length > 0) && <ShareAchievements
         path={`${shareBase}/players/${playerId}`}
-        text={`${player.name} · ${group.name}\n🏅 MOTM ×${motm.length} · 🏆 Monthly MVP ×${mvp.length}${bests.map(({ session, points }) => `\n⚡ Personal best: ${points} points · ${FORMAT_LABELS[session.format]} · ${date(session.kickoffAt)}`).join("")}`}
+        data={{ playerName: player.name, groupName: group.name, motm: motm.length, mvp: mvp.length, records: bests.map(({ session, points }) => {
+          const appearance = session.appearances.find(a => a.playerId === playerId)!;
+          return { format: FORMAT_LABELS[session.format], points, goals: appearance.goals, assists: appearance.assists, date: date(session.kickoffAt) };
+        }) }}
       />}
     </div>
   </section>;
