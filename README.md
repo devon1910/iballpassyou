@@ -71,6 +71,32 @@ supabase db reset
 psql "$LOCAL_DATABASE_URL" -f supabase/tests/database.sql
 ```
 
+## Production database deployments
+
+GitHub Actions applies pending migrations on pushes to `master` that change
+`supabase/migrations`. Configure the repository secret `SUPABASE_DB_URL` with
+the URL-encoded production Postgres connection string. The workflow runs the
+application type checks and unit tests first, then runs:
+
+```bash
+supabase db push --db-url "$SUPABASE_DB_URL"
+```
+
+For the currently deployed database, first inspect what has already run:
+
+```bash
+npx supabase migration list --linked
+```
+
+If the pending migration timestamps are the expected ones, run:
+
+```bash
+npx supabase db push --linked
+```
+
+This only applies migrations absent from Supabase's migration history; it does
+not rerun ones already recorded as applied.
+
 Dates are stored as `timestamptz`; display and calendar boundaries use each group’s IANA timezone. Weekdays use ISO numbering, Monday `1` through Sunday `7`.
 
 ## Historical data import
