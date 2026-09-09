@@ -14,12 +14,31 @@ It is deliberately lightweight. Players do not need accounts, admins do not need
 - Group-local rankings with monthly, previous-month, yearly, and all-time views.
 - A match calendar that marks recorded days with football icons and links straight to each session.
 - Full leaderboard copying for admins, designed for sharing back to WhatsApp or the group chat.
+- Player trophy cabinets with Man of the Match medal counts, monthly MVP trophy counts, and expandable award history.
+- Personal bests for each session format, including the record-setting session's points, goals, assists, and date.
+- Post-save session honours and celebrations for new personal bests, matched records, and first-session benchmarks.
+- Branded achievement images with a preview, a choice of personal best to feature, native image sharing where supported, and PNG downloads.
+- Leaderboard image sharing for the selected period, with ranks, goals, assists, ratings, and a snapshot date; larger tables split into cards of ten players.
 - Helpful loading overlays, active navigation states, inline explanations, date/time pickers, and reduced-motion support.
 - A friendly feedback form for suggestions, questions, and error reports.
 
 ## Product principles
 
 The app records facts rather than inventing them. Unknown winners do not receive bonuses, team assignments remain optional until they are known, and historical records are imported without fabricating goal events or assists. Every group is isolated from every other group at the database level.
+
+## Achievements and sharing
+
+Achievements use the existing rating: **4 points per goal, 2 per assist, and 1 for a session win**. A win bonus applies only when there is a unique winning team.
+
+- **Man of the Match:** the highest positive rating in a session earns a medal. Players tied at the top share the award.
+- **Monthly MVP:** the highest positive total rating in a completed calendar month earns a trophy. Month boundaries follow the group's timezone, ties share the award, and the current month remains open.
+- **Personal best:** a player's highest session rating within each format: no teams, fixed teams, or set play. The first session establishes a benchmark; later sessions can beat or match it. Profile cards retain the first session that achieved the highest score.
+
+Both historical and newly logged sessions count automatically. Honours and personal bests are calculated from stored session stats, so corrections, deletions, and historical imports update the results without a backfill job, scheduled task, or separate award database. Historical awards reflect the recorded ratings rather than any manually selected winners from the past.
+
+**Share player achievements** opens a portrait graphic featuring the player's name, group, medal and trophy counts, and selected personal best with goals, assists, points, and date. Players with records in multiple formats can choose which to feature. The browser generates a **1080 × 1440 PNG** using Canvas and local fonts; no AI image service or image storage is required. Supported browsers can share the image file with the profile link in the accompanying text. Download and copy-link options are available for posting manually.
+
+**Share leaderboard** uses the same preview and PNG-sharing flow for the selected period. Each card includes the group, calendar period, snapshot date, and up to ten players with their ranks, goals, assists, and ratings. A card selector includes every player in larger groups, preserving tied ranks across cards. Admin shares link to the public or private-share leaderboard rather than an admin-only page. Admin text copying and session text-sharing buttons remain available.
 
 ## Local development
 
@@ -78,8 +97,8 @@ npm run test:e2e
 ## Architecture
 
 - `src/app`: App Router pages, authentication callback, public surfaces, and server actions.
-- `src/components`: focused interaction primitives for forms, rosters, sessions, rankings, calendars, feedback, and navigation.
-- `src/lib`: domain types, rankings, formatting, timezone handling, data reads, and Supabase clients.
+- `src/components`: focused interaction primitives for forms, rosters, sessions, rankings, calendars, player honours, achievement sharing, feedback, and navigation.
+- `src/lib`: domain logic, rankings, achievement calculations, Canvas image rendering, formatting, timezone handling, data reads, and Supabase clients.
 - `supabase/migrations`: relational schema, constraints, RLS policies, transactional commands, and public read APIs.
 - `scripts/import-spartan.ts`: repeatable historical data import.
 

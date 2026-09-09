@@ -33,9 +33,9 @@ export function aggregateLeaderboard(sessions: FootballSession[]): LeaderboardRo
     }
   }
   const ordered = [...totals.values()].sort((a, b) => b.rating - a.rating || a.name.localeCompare(b.name));
-  return ordered.map((row, index) => ({
-    ...row,
-    rank: index === 0 || row.rating !== ordered[index - 1].rating ? index + 1 : 0,
-  })).map((row, index, rows) => ({ ...row, rank: row.rank || rows[index - 1].rank }));
+  let rank = 1;
+  return ordered.map((row, index) => {
+    if (index === 0 || row.rating !== ordered[index - 1].rating) rank = index + 1;
+    return { ...row, rank };
+  });
 }
-

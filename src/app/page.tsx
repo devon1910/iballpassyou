@@ -13,7 +13,6 @@ export default function Home() {
         <p>Goals, assists and one table your whole group understands. No player accounts. No league admin.</p>
         <div className="landing-actions"><Link className="button primary" href="/auth/sign-in">Start your group</Link><Link className="text-link" href="/explore">Explore public leaderboards</Link></div>
       </div>
-      <p className="mono landing-foot">Built for the group chat → pitch → group chat loop.</p>
     </div>
   </main>;
 }

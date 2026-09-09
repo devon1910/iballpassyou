@@ -118,7 +118,6 @@ h2 { font-size: 25px; letter-spacing: -.035em; }
 .landing-copy h1 { font-size: clamp(44px, 11vw, 86px); max-width: 850px; }
 .landing-copy > p:not(.eyebrow) { max-width: 490px; color: #d1d2c9; line-height: 1.55; }
 .landing-actions { margin-top: 30px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; max-width: 360px; }
-.landing-foot { color: var(--color-muted); font-size: 11px; }
 .photo-action-page { min-height: 100svh; position: relative; isolation: isolate; overflow: hidden; }
 .photo-action-image { z-index: -2; object-fit: cover; object-position: center 58%; filter: grayscale(.48) contrast(1.06) brightness(.72) blur(4px); transform: scale(1.025); }
 .photo-action-shade { position: absolute; z-index: -1; inset: 0; background: linear-gradient(180deg,rgba(18,20,14,.46),rgba(18,20,14,.72) 38%,rgba(18,20,14,.91)); }

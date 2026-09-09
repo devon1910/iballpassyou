@@ -35,7 +35,7 @@ describe("achievement image sharing", () => {
     await waitFor(() => expect(drawAchievementImage).toHaveBeenLastCalledWith(expect.any(HTMLCanvasElement), data, data.records[1]));
     await waitFor(() => expect((screen.getByRole("button", { name: "Share image" }) as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(screen.getByRole("button", { name: "Share image" }));
-    expect(navigator.share).toHaveBeenCalledWith(expect.objectContaining({ files: [expect.objectContaining({ name: "ada-achievements.png", type: "image/png" })], text: expect.stringContaining("/groups/ballers/players/ada") }));
+    expect(navigator.share).toHaveBeenCalledWith(expect.objectContaining({ files: [expect.objectContaining({ name: "ada-achievements-2.png", type: "image/png" })], text: expect.stringContaining("/groups/ballers/players/ada") }));
   });
 
   it("offers download when native file sharing is unavailable", async () => {
