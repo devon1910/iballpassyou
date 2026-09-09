@@ -73,10 +73,17 @@ psql "$LOCAL_DATABASE_URL" -f supabase/tests/database.sql
 
 ## Production database deployments
 
-GitHub Actions applies pending migrations on pushes to `master` that change
-`supabase/migrations`. Configure the repository secret `SUPABASE_DB_URL` with
-the URL-encoded production Postgres connection string. The workflow runs the
-application type checks and unit tests first, then runs:
+GitHub Actions owns production deployment on pushes to `master`. It runs the
+application type checks and unit tests, applies pending migrations, then deploys
+to Vercel. Configure these repository secrets:
+
+- `SUPABASE_DB_URL`: URL-encoded production **Session pooler** (port `5432`)
+  connection string. This works from IPv4-only CI runners; do not use the
+  direct IPv6-only database hostname unless the runner supports IPv6.
+- `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID`: production Vercel
+  deployment credentials.
+
+The migration stage runs:
 
 ```bash
 supabase db push --db-url "$SUPABASE_DB_URL"
@@ -96,6 +103,11 @@ npx supabase db push --linked
 
 This only applies migrations absent from Supabase's migration history; it does
 not rerun ones already recorded as applied.
+
+Disable Vercel's automatic Git deployment for this project once the workflow
+secrets are configured. Otherwise Vercel's Git integration and GitHub Actions
+can create concurrent production deployments. The GitHub Action is the ordered
+path: verify, migrate, then deploy.
 
 Dates are stored as `timestamptz`; display and calendar boundaries use each group’s IANA timezone. Weekdays use ISO numbering, Monday `1` through Sunday `7`.
 
