@@ -1,0 +1,4 @@
+"use client";
+import { ShareImagePreview } from "@/components/share-image-preview";
+import { drawSessionAchievementImage, type SessionAchievementImageData } from "@/lib/session-achievement-image";
+export function ShareSessionAchievements({ data, path }: { data: SessionAchievementImageData; path?: string }) { return <ShareImagePreview buttonLabel="Share all achievements" title="Share this session" filename={`${data.groupName}-session-achievements`} path={path} shareText={`${data.groupName} · ${data.date} session achievements`} selectionLabel="Session graphic" linkLabel="Copy session link" variants={[{ label: "MOTM + personal bests", description: `${data.groupName}, ${data.date}. Man of the Match: ${data.motm.names}, ${data.motm.points} points. ${data.records.length} personal bests.`, draw: canvas => drawSessionAchievementImage(canvas, data) }]} />; }
