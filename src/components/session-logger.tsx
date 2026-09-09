@@ -9,6 +9,8 @@ import { parseTeamSheet, shuffledTeamAssignments, unassignedPlayersLabel } from 
 import { saveSessionAction } from "@/app/app/actions";
 import { ActionOverlay } from "@/components/action-overlay";
 import { InfoTip } from "@/components/info-tip";
+import { TeamBalancer } from "@/components/team-balancer";
+import type { BalancingProfile } from "@/lib/balance/types";
 
 type DraftPlayer = {
   id: string;
@@ -18,6 +20,7 @@ type DraftPlayer = {
   goals: number;
   assists: number;
   isNew?: boolean;
+  balancing?: BalancingProfile;
 };
 
 type Draft = {
@@ -99,6 +102,7 @@ export function SessionLogger({ group }: { group: Group }) {
     wins: [0, 0],
   }), [activePlayers, group.defaultSessionFormat, latestSessionDate, schedule?.kickoffTime]);
   const [draft, setDraft] = useState(initial);
+  const [teamMode, setTeamMode] = useState<"manual" | "balance">("manual");
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -319,6 +323,7 @@ export function SessionLogger({ group }: { group: Group }) {
         teams: draft.format === "none" ? [] : cleanLabels.map((label, index) => ({ client_key: String(index), label, set_wins: draft.wins[index] })),
         players: selected.map((player) => ({
           ...(player.isNew ? { name: player.name } : { player_id: player.id }),
+          ...(player.isNew && player.balancing?.primaryPosition && player.balancing.skillLevel ? { balancing: { ...player.balancing, primaryPosition: player.balancing.primaryPosition, skillLevel: player.balancing.skillLevel } } : {}),
           team_key: draft.format === "none" ? undefined : String(player.team),
           goals: player.goals,
           assists: player.assists,
@@ -393,11 +398,16 @@ export function SessionLogger({ group }: { group: Group }) {
       </section>}
 
       {draft.step === 2 && <section>
+        <div className="button-row" style={{ marginBottom: 20 }}><button className="button" type="button" aria-pressed={teamMode === "manual"} onClick={() => setTeamMode("manual")}>Manual Teams</button><button className="button" type="button" aria-pressed={teamMode === "balance"} onClick={() => setTeamMode("balance")}>Balance Teams</button></div>
         <div className="section-row team-heading">
           <div><span className="section-label with-tip">Teams <InfoTip label="Explain team assignment">For pre-arranged teams, reuse the previous teams or paste a grouped team sheet. On the pitch, choose a team and tap each player going into it.</InfoTip></span><strong>{draft.labels.length} teams · {selected.length} players</strong></div>
           {draft.format === "sets" && <div className="mini-stepper" aria-label="Number of teams"><button type="button" disabled={draft.labels.length <= 2} onClick={() => setTeamCount(draft.labels.length - 1)} aria-label="Remove a team">−</button><output>{draft.labels.length}</output><button type="button" disabled={draft.labels.length >= 8} onClick={() => setTeamCount(draft.labels.length + 1)} aria-label="Add a team">+</button></div>}
         </div>
         {draft.format === "fixed_teams" && <p className="notice">Fixed-team sessions always use exactly two teams.</p>}
+        {teamMode === "balance" ? <>
+          <div className="form-stack">{draft.labels.map((label, i) => <label className="field" key={i}>Team {i + 1} label<input className="input" value={label} onChange={e => setDraft(current => ({ ...current, labels: current.labels.map((l, j) => i === j ? e.target.value : l) }))} /></label>)}</div>
+          <TeamBalancer key={`${draft.labels.length}:${selected.map(p => p.id).join(",")}`} groupId={group.id} labels={draft.labels} players={selected.map(p => ({ ...p, balancing: p.balancing ?? group.players.find(x => x.id === p.id)?.balancing }))} onProfile={(id, balancing) => updatePlayer(id, { balancing })} onAssign={assignments => setDraft(current => ({ ...current, players: current.players.map(p => assignments.has(p.id) ? { ...p, team: assignments.get(p.id)! } : p) }))} onAccepted={() => setDraft(current => ({ ...current, step: 3 }))} />
+        </> : <>
         <div className="team-quick-actions">
           <button className="button" type="button" onClick={assignEvenly}>Shuffle evenly</button>
           <button className="button" type="button" disabled={!canReuseLastTeams} onClick={reuseLastTeams}>Reuse last teams</button>
@@ -419,6 +429,7 @@ export function SessionLogger({ group }: { group: Group }) {
           const assignedTone = player.team >= 0 ? `team-tone-${teamTone(draft.labels[player.team], player.team)}` : "";
           return <button className={`assignment-player ${assignedTone} ${player.team === activeTeam ? "active" : ""} ${player.team < 0 ? "unassigned" : ""}`} type="button" key={player.id} onClick={() => updatePlayer(player.id, { team: activeTeam })}><span>{player.name}</span><small>{player.team < 0 ? "Unassigned" : draft.labels[player.team]}</small></button>;
         })}</div>
+        </>}
       </section>}
 
       {draft.step === 3 && <section>
@@ -445,7 +456,7 @@ export function SessionLogger({ group }: { group: Group }) {
       <div className="sticky-action">
         <button className="text-link" type="button" onClick={back}>Back</button>
         <span className="step-progress">{progress}</span>
-        <button className="button primary" type="button" disabled={saving || (draft.step === 1 && selected.length === 0)} onClick={draft.step === 4 ? save : next}>{saving ? "Saving…" : draft.step === 4 ? "Save session" : "Continue"}</button>
+        <button className="button primary" type="button" disabled={saving || (draft.step === 1 && selected.length === 0) || (draft.step === 2 && teamMode === "balance")} onClick={draft.step === 4 ? save : next}>{saving ? "Saving…" : draft.step === 4 ? "Save session" : "Continue"}</button>
       </div>
     </>
   );

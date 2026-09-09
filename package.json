@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "next build && node scripts/run-e2e.mjs",
+    "test:e2e": "node scripts/run-e2e.mjs",
     "import:spartan": "tsx scripts/import-spartan.ts"
   },
   "dependencies": {

@@ -14,6 +14,7 @@ export interface Player {
   id: string;
   name: string;
   active: boolean;
+  balancing?: import("@/lib/balance/types").BalancingProfile;
 }
 
 export interface Team {

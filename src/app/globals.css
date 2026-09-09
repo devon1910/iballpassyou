@@ -349,3 +349,14 @@ h2 { font-size: 25px; letter-spacing: -.035em; }
 @media (max-width: 560px) { .featured-goals-head { display: block; } .featured-goals-head > p { margin-top: 10px; } }
 @media (max-width: 440px) { .session-action { grid-template-columns: 1fr; } .session-action .button, .session-action .text-link { width: 100%; justify-content: center; } .confirm-actions { justify-content: stretch; } .confirm-actions > * { flex: 1; } }
 @media (prefers-reduced-motion: reduce) { *,*::before,*::after { scroll-behavior: auto!important; animation-duration: .01ms!important; animation-iteration-count: 1!important; } .landing-video { display: none; } }
+/* Balancing controls stay usable by touch without drag-and-drop. */
+.team-balancer { margin-top: 20px; }
+.balance-profile, .balance-option, .balance-adjustment { padding: 16px; margin: 16px 0; border: 1px solid var(--line, #555); min-width: 0; }
+.balance-profile legend { font-weight: 700; }
+.balance-summary > div { margin: 12px 0; }
+.balance-quality { text-transform: capitalize; }
+.team-balancer button, .team-balancer select, .balance-profile button, .balance-profile select, details > summary { min-height: 44px; }
+.balance-adjustment { padding: 0 12px; margin: 8px 0; }
+.balance-adjustment summary { padding: 12px 0; cursor: pointer; }
+.balance-adjustment .form-stack { padding: 8px 0 16px; }
+.team-heading .mini-stepper button { min-width: 44px; min-height: 44px; }

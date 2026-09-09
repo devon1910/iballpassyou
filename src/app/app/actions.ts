@@ -2,9 +2,28 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { isFutureLocalDate, localDateTimeToIso } from "@/lib/time";
+import { POSITIONS, type BalancingProfile } from "@/lib/balance/types";
+
+export async function saveBalancingProfileAction(groupId: string, playerId: string, profile: BalancingProfile) {
+  const checked = z.object({ groupId: z.string().uuid(), playerId: z.string().min(1), profile: z.object({
+    primaryPosition: z.enum(POSITIONS), secondaryPosition: z.enum(POSITIONS).nullable(),
+    keeperCapable: z.boolean(), skillLevel: z.number().int().min(1).max(5),
+  }) }).safeParse({ groupId, playerId, profile });
+  if (!checked.success) return { ok: false as const, error: "Choose a position and Skill Level from 1 to 5." };
+  try {
+    const client = await createClient();
+    if (!client) return { ok: true as const };
+    if (!z.string().uuid().safeParse(playerId).success) return { ok: false as const, error: "Invalid player." };
+    const p = checked.data.profile;
+    // RLS requires ownership/admin membership; single also rejects a zero-row update.
+    const { error } = await client.from("players").update({ primary_position: p.primaryPosition, secondary_position: p.secondaryPosition, keeper_capable: p.keeperCapable, skill_level: p.skillLevel }).eq("group_id", groupId).eq("id", playerId).select("id").single();
+    return error ? { ok: false as const, error: "Couldn’t save balancing details. Check your admin access and try again." } : { ok: true as const };
+  } catch { return { ok: false as const, error: "Couldn’t save balancing details. Please try again." }; }
+}
 
 const team=z.object({client_key:z.string().min(1),label:z.string().trim().min(1).max(40),set_wins:z.number().int().min(0)});
-const player=z.object({player_id:z.string().uuid().optional(),name:z.string().trim().min(1).max(80).optional(),team_key:z.string().optional(),goals:z.number().int().min(0),assists:z.number().int().min(0)}).refine(v=>v.player_id||v.name,"Player identity required");
+const balancingProfile=z.object({primaryPosition:z.enum(POSITIONS),secondaryPosition:z.enum(POSITIONS).nullable(),keeperCapable:z.boolean(),skillLevel:z.number().int().min(1).max(5)});
+const player=z.object({player_id:z.string().uuid().optional(),name:z.string().trim().min(1).max(80).optional(),team_key:z.string().optional(),goals:z.number().int().min(0),assists:z.number().int().min(0),balancing:balancingProfile.optional()}).refine(v=>v.player_id||v.name,"Player identity required");
 const session=z.object({group_id:z.string().uuid(),client_session_id:z.string().uuid(),date:z.string().date(),time:z.string().regex(/^\d{2}:\d{2}$/),timezone:z.string().min(1),format:z.enum(["none","fixed_teams","sets"]),teams:z.array(team).max(8),players:z.array(player).min(1).max(100)}).superRefine((value,context)=>{
   if(value.format==="none"&&value.teams.length!==0)context.addIssue({code:"custom",path:["teams"],message:"No-team sessions cannot contain teams"});
   if(value.format==="fixed_teams"&&value.teams.length!==2)context.addIssue({code:"custom",path:["teams"],message:"Fixed-team sessions require exactly two teams"});

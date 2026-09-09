@@ -7,7 +7,7 @@ import type { Group } from "@/types/domain";
 type Payload = Record<string, unknown>;
 function mapGroup(raw: Payload): Group {
   const schedules=(raw.schedules as Payload[]??[]).map(s=>({id:String(s.id),dayOfWeek:Number(s.day_of_week),kickoffTime:String(s.kickoff_time).slice(0,5),venue:s.venue?String(s.venue):undefined,active:true}));
-  const players=(raw.players as Payload[]??[]).map(p=>({id:String(p.id),name:String(p.name),active:true}));
+  const players=(raw.players as Payload[]??[]).map(p=>({id:String(p.id),name:String(p.name),active:p.active !== false,...("skill_level" in p ? {balancing:{primaryPosition:p.primary_position as import("@/lib/balance/types").Position|null,secondaryPosition:p.secondary_position as import("@/lib/balance/types").Position|null,keeperCapable:p.keeper_capable===true,skillLevel:p.skill_level===null?null:Number(p.skill_level)}} : {})}));
   const sessions=(raw.sessions as Payload[]??[]).map(s=>({id:String(s.id),clientSessionId:String(s.client_session_id??s.id),kickoffAt:String(s.kickoff_at),format:s.format as Group["defaultSessionFormat"],teams:(s.teams as Payload[]??[]).map(t=>({id:String(t.id),label:String(t.label),setWins:Number(t.set_wins)})),appearances:(s.players as Payload[]??[]).map(p=>({playerId:String(p.player_id),playerName:String(p.name),teamId:p.team_id?String(p.team_id):undefined,goals:Number(p.goals),assists:Number(p.assists)}))}));
   return {id:String(raw.id),name:String(raw.name),timezone:String(raw.timezone),defaultSessionFormat:raw.default_session_format as Group["defaultSessionFormat"],visibility:raw.visibility as Group["visibility"],publicSlug:raw.public_slug?String(raw.public_slug):undefined,shareToken:raw.share_token?String(raw.share_token):"",schedules,players,sessions};
 }
