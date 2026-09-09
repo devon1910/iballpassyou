@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from "vitest";
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 import { createClient } from "@/lib/supabase/server";
-import { saveSessionAction, saveBalancingProfileAction, type SessionActionInput } from "./actions";
+import { createGroupAction, saveSessionAction, saveBalancingProfileAction, type SessionActionInput } from "./actions";
 
 const groupId = "11111111-1111-4111-8111-111111111111";
 const playerId = "22222222-2222-4222-8222-222222222222";
@@ -31,4 +31,11 @@ it("does not require balancing metadata for manual session saves", async () => {
   for (const player of players) delete player.balancing;
   const manual = { ...input, players };
   expect((await saveSessionAction(manual)).ok).toBe(true);
+});
+it("defaults omitted group visibility to public before calling the database", async () => {
+  const rpc = vi.fn().mockResolvedValue({ data: groupId, error: null });
+  vi.mocked(createClient).mockResolvedValue({ rpc } as unknown as Awaited<ReturnType<typeof createClient>>);
+  const result = await createGroupAction({ name: "Public by default", timezone: "Africa/Lagos", default_session_format: "fixed_teams", schedules: [] });
+  expect(result.ok).toBe(true);
+  expect(rpc).toHaveBeenCalledWith("create_group", { command: expect.objectContaining({ visibility: "public" }) });
 });

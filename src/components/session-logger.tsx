@@ -108,6 +108,7 @@ export function SessionLogger({ group }: { group: Group }) {
   const [saving, setSaving] = useState(false);
   const [activeTeam, setActiveTeam] = useState(0);
   const [teamSheet, setTeamSheet] = useState("");
+  const [teamSheetOpen, setTeamSheetOpen] = useState(false);
   const [teamMessage, setTeamMessage] = useState("");
   const [addingPlayer, setAddingPlayer] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState("");
@@ -273,6 +274,7 @@ export function SessionLogger({ group }: { group: Group }) {
         : player.selected ? { ...player, team: -1 } : player),
     }));
     setTeamMessage(`${assignments.size} players assigned from the pasted team sheet.`);
+    setTeamSheetOpen(false);
   };
   const next = () => {
     setError("");
@@ -369,6 +371,11 @@ export function SessionLogger({ group }: { group: Group }) {
             </select>
           </div>
         </div>
+        {draft.format !== "none" && <aside className="balance-nudge">
+          <strong>Want help picking fair teams?</strong>
+          <p>Select everyone who is playing. On the next screen, choose <b>Balance Teams</b> to generate suggestions using private position and Skill Level details.</p>
+          <small>Everyone you select stays in the session. Balancing never chooses who sits out.</small>
+        </aside>}
         <div className="tabs">
           <button type="button" disabled={!activePlayers.length} className={draft.mode === "roster" ? "active" : ""} onClick={() => setDraft((current) => ({ ...current, mode: "roster" }))}>From roster</button>
           <button type="button" className={draft.mode === "paste" ? "active" : ""} onClick={() => setDraft((current) => ({ ...current, mode: "paste" }))}>Paste list</button>
@@ -398,7 +405,11 @@ export function SessionLogger({ group }: { group: Group }) {
       </section>}
 
       {draft.step === 2 && <section>
-        <div className="button-row" style={{ marginBottom: 20 }}><button className="button" type="button" aria-pressed={teamMode === "manual"} onClick={() => setTeamMode("manual")}>Manual Teams</button><button className="button" type="button" aria-pressed={teamMode === "balance"} onClick={() => setTeamMode("balance")}>Balance Teams</button></div>
+        <div className="team-choice-head"><p className="eyebrow">Choose a method</p><h2>How should today’s teams be picked?</h2></div>
+        <div className="team-methods">
+          <button type="button" aria-label="Manual Teams" aria-pressed={teamMode === "manual"} onClick={() => setTeamMode("manual")}><strong>Manual Teams</strong><small>Assign every player yourself, reuse the last teams, or paste a team sheet.</small></button>
+          <button type="button" aria-label="Balance Teams" aria-pressed={teamMode === "balance"} onClick={() => setTeamMode("balance")}><span className="method-badge">Fair suggestions</span><strong>Balance Teams</strong><small>Automatically generate up to three lineups from position and private Skill Level.</small></button>
+        </div>
         <div className="section-row team-heading">
           <div><span className="section-label with-tip">Teams <InfoTip label="Explain team assignment">For pre-arranged teams, reuse the previous teams or paste a grouped team sheet. On the pitch, choose a team and tap each player going into it.</InfoTip></span><strong>{draft.labels.length} teams · {selected.length} players</strong></div>
           {draft.format === "sets" && <div className="mini-stepper" aria-label="Number of teams"><button type="button" disabled={draft.labels.length <= 2} onClick={() => setTeamCount(draft.labels.length - 1)} aria-label="Remove a team">−</button><output>{draft.labels.length}</output><button type="button" disabled={draft.labels.length >= 8} onClick={() => setTeamCount(draft.labels.length + 1)} aria-label="Add a team">+</button></div>}
@@ -412,8 +423,8 @@ export function SessionLogger({ group }: { group: Group }) {
           <button className="button" type="button" onClick={assignEvenly}>Shuffle evenly</button>
           <button className="button" type="button" disabled={!canReuseLastTeams} onClick={reuseLastTeams}>Reuse last teams</button>
         </div>
-        <details className="team-sheet">
-          <summary>Paste pre-arranged teams</summary>
+        <details className="team-sheet" open={teamSheetOpen} onToggle={(event) => setTeamSheetOpen(event.currentTarget.open)}>
+          <summary>{teamSheetOpen ? "Back to manual team assignment" : "Paste pre-arranged teams"}</summary>
           <p className="muted">Put each team name before a colon, followed by its players.</p>
           <textarea className="textarea" aria-label="Grouped team sheet" value={teamSheet} onChange={(event) => setTeamSheet(event.target.value)} placeholder={'Red:\nAda\nBola\n\nBlue:\nChidi\nDele'} />
           <button className="button" type="button" disabled={!teamSheet.trim()} onClick={applyTeamSheet}>Apply team sheet</button>
@@ -456,7 +467,9 @@ export function SessionLogger({ group }: { group: Group }) {
       <div className="sticky-action">
         <button className="text-link" type="button" onClick={back}>Back</button>
         <span className="step-progress">{progress}</span>
-        <button className="button primary" type="button" disabled={saving || (draft.step === 1 && selected.length === 0) || (draft.step === 2 && teamMode === "balance")} onClick={draft.step === 4 ? save : next}>{saving ? "Saving…" : draft.step === 4 ? "Save session" : "Continue"}</button>
+        {draft.step === 2 && teamMode === "balance"
+          ? <span className="balance-sticky-hint">Follow the balancing steps above</span>
+          : <button className="button primary" type="button" disabled={saving || (draft.step === 1 && selected.length === 0)} onClick={draft.step === 4 ? save : next}>{saving ? "Saving…" : draft.step === 4 ? "Save session" : "Continue"}</button>}
       </div>
     </>
   );

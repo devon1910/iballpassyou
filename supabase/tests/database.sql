@@ -6,6 +6,11 @@ do $$ begin
   if has_table_privilege('anon','public.group_members','select') then raise exception 'anon can read memberships'; end if;
   if not has_function_privilege('anon','public.explore_public_groups()','execute') then raise exception 'explore rpc unavailable'; end if;
 end $$;
+do $$ begin
+  if (select column_default from information_schema.columns where table_schema='public' and table_name='groups' and column_name='visibility') <> '''public''::text' then
+    raise exception 'group visibility does not default to public';
+  end if;
+end $$;
 -- Composite FKs are the database-level tenant boundary; verify they exist.
 do $$ declare count_fk integer; begin select count(*) into count_fk from pg_constraint where conrelid='public.session_players'::regclass and contype='f';if count_fk<>3 then raise exception 'expected 3 tenant-safe session player foreign keys, got %',count_fk;end if;end $$;
 do $$ declare policy_count integer; begin select count(*) into policy_count from pg_policies where schemaname='public' and tablename in ('groups','group_schedules','group_members','players','sessions','session_teams','session_players');if policy_count<7 then raise exception 'expected deny-by-default admin policies';end if;end $$;

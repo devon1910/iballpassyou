@@ -11,7 +11,7 @@ export function CreateGroupForm(){
   const router=useRouter();
   const [days,setDays]=useState<number[]>([2]);
   const [variable,setVariable]=useState(false);
-  const [visibility,setVisibility]=useState<Visibility>("private");
+  const [visibility,setVisibility]=useState<Visibility>("public");
   const [format,setFormat]=useState<SessionFormat>("fixed_teams");
   const [error,setError]=useState("");
   const [pending,setPending]=useState(false);

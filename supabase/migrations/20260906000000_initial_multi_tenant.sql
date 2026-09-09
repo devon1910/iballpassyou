@@ -7,7 +7,7 @@ create table public.groups (
   name text not null check (length(btrim(name)) between 1 and 80),
   timezone text not null,
   default_session_format text not null check (default_session_format in ('none','fixed_teams','sets')),
-  visibility text not null default 'private' check (visibility in ('private','public')),
+  visibility text not null default 'public' check (visibility in ('private','public')),
   public_slug citext unique,
   share_token uuid not null default gen_random_uuid() unique,
   created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
@@ -94,7 +94,7 @@ create or replace function public.slugify(value text) returns text language sql 
 $$;
 
 create or replace function public.create_group(command jsonb) returns uuid language plpgsql security definer set search_path='' as $$
-declare actor uuid:=auth.uid(); new_group uuid; requested_visibility text:=coalesce(command->>'visibility','private'); base_slug text; candidate text; suffix integer:=1; schedule jsonb;
+declare actor uuid:=auth.uid(); new_group uuid; requested_visibility text:=coalesce(command->>'visibility','public'); base_slug text; candidate text; suffix integer:=1; schedule jsonb;
 begin
   if actor is null then raise exception using errcode='42501',message='authentication required'; end if;
   if requested_visibility not in ('private','public') then raise exception using errcode='22023',message='invalid visibility'; end if;

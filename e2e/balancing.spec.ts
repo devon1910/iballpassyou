@@ -14,23 +14,27 @@ test("balance selected attendees, complete profiles, lock, swap, and save normal
   await page.getByRole("button", { name: "Check names" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "Balance Teams", exact: true }).click();
-  await expect(page.getByText("10 players need balancing details")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "No selected players are ready yet" })).toBeVisible();
+  await expect(page.getByText("You do not need to set up your whole historical roster.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Set up player profiles in Players" })).toHaveAttribute("href", "/app/groups/11111111-1111-4111-8111-111111111111/players");
+  await expect(page.getByText("This is more than a random shuffle.")).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("balancing-setup-mobile.png"), fullPage: true });
   for (const [i, name] of names.entries()) {
     const profile = page.getByRole("group", { name, exact: true });
     await profile.getByRole("combobox", { name: "Primary position", exact: true }).selectOption(["defender", "midfielder", "attacker"][i % 3]);
     await profile.getByRole("combobox", { name: "Skill Level", exact: true }).selectOption("3");
     if (i < 2) await profile.getByLabel("Keeper capable").check();
-    await profile.getByRole("button", { name: "Save balancing details" }).click();
+    await profile.getByRole("button", { name: /Save/ }).click();
   }
   await page.getByLabel("Team 1 label", { exact: true }).fill("Red");
   await page.getByLabel("Team 2 label", { exact: true }).fill("Black");
-  await page.getByText("Lock players to teams (optional)", { exact: true }).click();
+  await page.getByLabel("Lock players to teams (optional)", { exact: true }).click();
   await page.getByRole("combobox", { name: "Lock Balance Player 1", exact: true }).selectOption("0");
-  await page.getByRole("button", { name: "Generate teams" }).click();
+  await page.getByRole("button", { name: "Generate team suggestions" }).click();
   await expect(page.getByRole("region", { name: /^Option / })).toHaveCount(3);
   await page.getByRole("button", { name: "Try another", exact: true }).click();
   await expect(page.getByRole("region", { name: "Option 4", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Generate teams" }).click();
+  await page.getByRole("button", { name: "Regenerate suggestions" }).click();
   await page.getByRole("button", { name: "Choose option 1", exact: true }).click();
   await openAdjustment(page, "Balance Player 1");
   await expect(page.getByRole("combobox", { name: "Move Balance Player 1", exact: true })).toBeDisabled();
@@ -87,7 +91,13 @@ test("manual teams retain the existing assignment workflow", async ({ page }) =>
   await page.getByText("Mike", { exact: true }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "Manual Teams", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Generate teams" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Generate team suggestions" })).toHaveCount(0);
+  const pasteTeams = page.locator(".team-sheet > summary");
+  await expect(pasteTeams).toHaveText("Paste pre-arranged teams");
+  await pasteTeams.click();
+  await expect(pasteTeams).toHaveText("Back to manual team assignment");
+  await pasteTeams.click();
+  await expect(pasteTeams).toHaveText("Paste pre-arranged teams");
   await page.getByRole("button", { name: "Shuffle evenly" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: "LOG THE STATS" })).toBeVisible();
@@ -100,6 +110,15 @@ test("no-team sessions skip balancing", async ({ page }) => {
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: "LOG THE STATS" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Balance Teams" })).toHaveCount(0);
+});
+
+test("player management explains and tracks balancing profile setup", async ({ page }) => {
+  await page.goto("/app/groups/11111111-1111-4111-8111-111111111111/players");
+  await expect(page.getByRole("heading", { name: "0 of 6 active players ready" })).toBeVisible();
+  await expect(page.getByText("Skill Level helps create teams. It does not change Performance Rating or public leaderboards.")).toBeVisible();
+  await expect(page.getByText("Needs balancing details", { exact: true })).toHaveCount(6);
+  await page.getByText("Set up Davidson for balancing", { exact: true }).click();
+  await expect(page.getByRole("group", { name: "Davidson", exact: true })).toBeVisible();
 });
 
 test("set sessions balance three teams and keep the existing stats flow", async ({ page }) => {
@@ -115,9 +134,9 @@ test("set sessions balance three teams and keep the existing stats flow", async 
     const profile = page.getByRole("group", { name, exact: true });
     await profile.getByRole("combobox", { name: "Primary position", exact: true }).selectOption("midfielder");
     await profile.getByRole("combobox", { name: "Skill Level", exact: true }).selectOption("3");
-    await profile.getByRole("button", { name: "Save balancing details" }).click();
+    await profile.getByRole("button", { name: /Save/ }).click();
   }
-  await page.getByRole("button", { name: "Generate teams" }).click();
+  await page.getByRole("button", { name: "Generate team suggestions" }).click();
   await page.getByRole("button", { name: "Choose option 1", exact: true }).click();
   const live = page.getByRole("status", { name: "Live balance" });
   await expect(live).toContainText("Only 0 keeper-capable players are available for 3 teams.");
