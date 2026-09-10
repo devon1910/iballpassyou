@@ -1,3 +1,6 @@
+"use client";
+
+import { useRef } from "react";
 import Link from "next/link";
 
 const goals = [
@@ -10,6 +13,11 @@ const goals = [
 ] as const;
 
 export function FeaturedGoals() {
+  const videos = useRef<Array<HTMLVideoElement | null>>([]);
+  function pauseOtherGoals(current: HTMLVideoElement) {
+    for (const video of videos.current) if (video && video !== current) video.pause();
+  }
+
   return <section className="featured-goals" aria-labelledby="featured-goals-title">
     <div className="featured-goals-head">
       <div><p className="section-label">Featured goals</p><h2 id="featured-goals-title">SPARTAN BANGERS</h2></div>
@@ -18,7 +26,7 @@ export function FeaturedGoals() {
     <div className="goal-reel">
       {goals.map((goal, index) => <article className="goal-card" key={goal.src}>
         <div className="goal-video">
-          <video controls playsInline preload="none" poster={goal.poster} aria-label={`${goal.player}'s featured Spartan goal from ${goal.year}`}>
+          <video ref={(node) => { videos.current[index] = node; }} controls playsInline preload="none" poster={goal.poster} onPlay={(event) => pauseOtherGoals(event.currentTarget)} aria-label={`${goal.player}'s featured Spartan goal from ${goal.year}`}>
             <source src={goal.mobileSrc} type="video/mp4" media="(max-width: 699px)" />
             <source src={goal.src} type="video/mp4" />
             Your browser does not support embedded videos.

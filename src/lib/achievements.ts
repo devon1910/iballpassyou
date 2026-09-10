@@ -40,6 +40,63 @@ export function sessionRecord(group: Group, session: FootballSession, playerId: 
   return { points, previousBest, kind };
 }
 
+export interface SessionMilestone {
+  playerId: string;
+  playerName: string;
+  points: number;
+  goals: number;
+  assists: number;
+  clause: string;
+}
+
+/**
+ * Genuine, data-derived milestones for the session receipt. A player gets at
+ * most one row: the first matching clause wins, keeping the receipt short and
+ * preventing a single performance from becoming filler copy.
+ */
+export function sessionMilestones(group: Group, session: FootballSession, excludedPlayerIds: string[] = []) {
+  const excluded = new Set(excludedPlayerIds);
+  const chronological = [...group.sessions].sort((a, b) => new Date(a.kickoffAt).getTime() - new Date(b.kickoffAt).getTime() || a.id.localeCompare(b.id));
+  const currentTime = new Date(session.kickoffAt).getTime();
+  const priorSessions = chronological.filter((candidate) => new Date(candidate.kickoffAt).getTime() < currentTime);
+  const currentIndex = chronological.findIndex((candidate) => candidate.id === session.id);
+  const maxGoals = Math.max(0, ...session.appearances.map((appearance) => appearance.goals));
+  const maxAssists = Math.max(0, ...session.appearances.map((appearance) => appearance.assists));
+  const milestones: SessionMilestone[] = [];
+
+  for (const appearance of session.appearances) {
+    if (excluded.has(appearance.playerId)) continue;
+    const playerPrior = priorSessions.filter((candidate) => candidate.appearances.some((item) => item.playerId === appearance.playerId));
+    const priorAppearances = playerPrior.flatMap((candidate) => candidate.appearances.filter((item) => item.playerId === appearance.playerId));
+    const points = appearanceRating(appearance, uniqueWinningTeamId(session));
+    const priorGoals = priorAppearances.reduce((total, item) => total + item.goals, 0);
+    const previousRatings = playerPrior
+      .filter((candidate) => candidate.format === session.format)
+      .flatMap((candidate) => candidate.appearances.filter((item) => item.playerId === appearance.playerId).map((item) => appearanceRating(item, uniqueWinningTeamId(candidate))));
+
+    let clause: string | undefined;
+    if (appearance.goals > 0 && priorGoals === 0) {
+      clause = "FIRST GOAL FOR THE GROUP";
+    } else {
+      let scoringRun = 0;
+      const end = currentIndex >= 0 ? currentIndex : chronological.length;
+      for (let index = end; index >= 0; index -= 1) {
+        const candidate = chronological[index];
+        if (!candidate || new Date(candidate.kickoffAt).getTime() > currentTime) continue;
+        const candidateAppearance = candidate.appearances.find((item) => item.playerId === appearance.playerId);
+        if (!candidateAppearance || candidateAppearance.goals <= 0) break;
+        scoringRun += 1;
+      }
+      if (scoringRun >= 3) clause = `SCORED IN ${scoringRun} STRAIGHT`;
+      else if (previousRatings.length && points > Math.max(...previousRatings)) clause = `BEST RATING YET · ${points}`;
+      else if (appearance.assists > 0 && appearance.assists === maxAssists) clause = `${appearance.assists} ASSISTS · SESSION HIGH`;
+      else if (appearance.goals > 0 && appearance.goals === maxGoals) clause = `${appearance.goals} GOALS · SESSION HIGH`;
+    }
+    if (clause) milestones.push({ playerId: appearance.playerId, playerName: appearance.playerName, points, goals: appearance.goals, assists: appearance.assists, clause });
+  }
+  return milestones.slice(0, 4);
+}
+
 export function playerHonours(group: Group, playerId: string, now = new Date()) {
   const sessions = group.sessions.filter(s => new Date(s.kickoffAt) <= now && s.appearances.some(a => a.playerId === playerId))
     .sort((a, b) => new Date(a.kickoffAt).getTime() - new Date(b.kickoffAt).getTime() || a.id.localeCompare(b.id));

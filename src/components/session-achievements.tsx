@@ -1,35 +1,68 @@
 import Link from "next/link";
-import { Medal, Zap } from "lucide-react";
 import { ShareButton } from "@/components/share-button";
 import { ShareSessionAchievements } from "@/components/share-session-achievements";
-import { FORMAT_LABELS, sessionMotm, sessionRecord } from "@/lib/achievements";
+import { sessionMilestones, sessionMotm } from "@/lib/achievements";
 import type { FootballSession, Group } from "@/types/domain";
 
-export function SessionAchievements({ group, session }: { group: Group; session: FootballSession }) {
+function receiptDate(value: string, timezone: string) {
+  return new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "2-digit", month: "2-digit", year: "2-digit", timeZone: timezone }).format(new Date(value)).toUpperCase();
+}
+
+function sessionNumber(group: Group, session: FootballSession) {
+  return [...group.sessions]
+    .sort((a, b) => new Date(a.kickoffAt).getTime() - new Date(b.kickoffAt).getTime() || a.id.localeCompare(b.id))
+    .findIndex((candidate) => candidate.id === session.id) + 1;
+}
+
+export function SessionAchievements({ group, session, reveal = false }: { group: Group; session: FootballSession; reveal?: boolean }) {
   const winners = sessionMotm(session);
-  const date = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: group.timezone }).format(new Date(session.kickoffAt));
-  const records = session.appearances.flatMap(a => {
-    const record = sessionRecord(group, session, a.playerId);
-    return record?.kind ? [{ ...record, player: a }] : [];
-  });
+  const winnerIds = winners.map((winner) => winner.playerId);
+  const milestones = sessionMilestones(group, session, winnerIds);
+  const date = receiptDate(session.kickoffAt, group.timezone);
   const shareBase = group.visibility === "public" && group.publicSlug ? `/groups/${group.publicSlug}` : group.shareToken ? `/g/${group.shareToken}` : undefined;
-  return <section className="session-achievements" aria-label="Session achievements">
-    <p className="section-label">Session honours · {date}</p>
-    {winners.length > 0 ? <div className="motm-banner"><Medal size={40} aria-hidden="true" /><div><p className="eyebrow">{winners.length > 1 ? "Joint Men of the Match" : "Man of the Match"}</p><h2>{winners.map(w => w.name).join(" & ")}</h2><span className="mono">{winners[0].rating} points · A medal for the cabinet</span></div></div> : <p className="muted">No MOTM this session. A positive rating is needed to earn a medal.</p>}
-    {shareBase && winners.length > 0 && <ShareButton label="Share Man of the Match" title="iBallPassYou · Man of the Match" path={shareBase} text={`🏅 ${winners.map(w => w.name).join(" & ")} · ${winners.length > 1 ? "Joint MOTM" : "Man of the Match"}\n${winners[0].rating} points · ${group.name} · ${date}`} />}
-    {shareBase && <ShareSessionAchievements path={shareBase} data={{ groupName: group.name, date, motm: { names: winners.length ? winners.map(w => w.name).join(" & ") : "No MOTM", points: winners.length ? winners[0].rating : 0 }, records: records.map(({ player, points }) => ({ playerName: player.playerName, points, goals: player.goals, assists: player.assists })) }} />}
-    {records.map(({ player, points, previousBest, kind }) => {
-      const title = kind === "broken" ? "New personal best!" : kind === "matched" ? "Personal best matched" : "Your starting benchmark";
-      const text = `${player.playerName} · ${title} ${points} points${previousBest !== undefined ? ` (previous best: ${previousBest})` : ""}. ${FORMAT_LABELS[session.format]} · ${group.name} · ${date}.`;
-      return <article className={`record-card ${kind === "broken" ? "record-broken" : ""}`} key={player.playerId}>
-        <div className="record-heading"><Zap size={20} aria-hidden="true" /><span className="eyebrow">{title}</span></div>
-        <Link className="text-link" href={`/app/groups/${group.id}/players/${player.playerId}`}>{player.playerName}</Link>
-        <p className="record-score"><b>{points}</b> points</p>
-        <p className="mono">{player.goals} {player.goals === 1 ? "goal" : "goals"} · {player.assists} {player.assists === 1 ? "assist" : "assists"}</p>
-        <p className="muted">{FORMAT_LABELS[session.format]}{previousBest !== undefined ? ` · Previous best: ${previousBest}` : " · Your first session in this format"}</p>
-        {shareBase && <ShareButton text={text} path={`${shareBase}/players/${player.playerId}`} label="Share achievement" title={`${player.playerName} · ${title}`} />}
-      </article>;
-    })}
-    <p className="rating-note">Goal +4 · Assist +2 · Session win +1. MOTM goes to the highest positive rating; ties share the medal. Personal bests compare earlier sessions in the same format.</p>
+  const groupSlug = group.publicSlug ?? group.shareToken;
+  const winner = winners[0];
+  const winnerAppearance = winner ? session.appearances.find((appearance) => appearance.playerId === winner.playerId) : undefined;
+  const shareData = winner ? {
+    groupName: group.name,
+    groupSlug,
+    barcodeValue: group.publicSlug ? `https://iballpassyou.com/groups/${group.publicSlug}` : group.shareToken ? `https://iballpassyou.com/g/${group.shareToken}` : undefined,
+    venue: group.schedules.find((schedule) => schedule.active && schedule.venue)?.venue,
+    date,
+    sessionNumber: sessionNumber(group, session),
+    motm: {
+      names: winners.map((item) => item.name),
+      points: winner.rating,
+      goals: winnerAppearance?.goals,
+      assists: winnerAppearance?.assists,
+      rating: winner.rating,
+    },
+    records: milestones.map((milestone) => ({
+      playerName: milestone.playerName,
+      points: milestone.points,
+      goals: milestone.goals,
+      assists: milestone.assists,
+      clause: milestone.clause,
+    })),
+  } : undefined;
+
+  return <section className={`session-achievements${reveal ? " receipt-reveal" : ""}`} aria-label="Session achievements">
+    <p className="section-label">Session receipt · {date}</p>
+    {winner ? <div className="receipt-inline">
+      <p className="eyebrow receipt-print-stamp" data-anim="ibpyWipe 260ms cubic-bezier(.16,.84,.28,1) .5s both">MAN OF THE MATCH</p>
+      <h2 className="receipt-print-subject" data-anim="ibpyRise 480ms cubic-bezier(.2,.8,.3,1) .76s both">{winners.map((item) => item.name).join(" / ")}</h2>
+      <p className="mono receipt-print-total" data-anim="ibpyFade 180ms linear 1.86s both">{winner.rating} POINTS</p>
+    </div> : <p className="muted">No positive session rating was recorded.</p>}
+    {shareBase && shareData && <>
+      <ShareButton label="Share Man of the Match" title="iballpassyou · Man of the Match" path={shareBase} text={`${winners.map((item) => item.name).join(" / ")} · ${winner.rating} points · ${group.name} · ${date}`} />
+      <ShareSessionAchievements path={shareBase} data={shareData} />
+    </>}
+    {milestones.map((milestone, index) => <article className="record-card receipt-print-item" style={{ "--receipt-delay": `${1.24 + index * .11}s` } as React.CSSProperties} data-anim={`ibpyFade 160ms linear ${1.24 + index * .11}s both`} key={milestone.playerId}>
+      <p className="eyebrow">Receipt milestone</p>
+      <Link className="text-link" href={`/app/groups/${group.id}/players/${milestone.playerId}`}>{milestone.playerName}</Link>
+      <p className="record-score mono">{milestone.clause}</p>
+      <p className="mono">{milestone.goals}G · {milestone.assists}A · {milestone.points} PTS</p>
+    </article>)}
+    <p className="rating-note">Goal +4 · Assist +2 · Session win +1. This receipt lists only data-derived milestones.</p>
   </section>;
 }

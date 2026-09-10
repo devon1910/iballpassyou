@@ -3,7 +3,15 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Download, Share2, X } from "lucide-react";
 import { InlineSpinner } from "@/components/inline-spinner";
-export interface ShareImageVariant { label: string; description: string; draw: (canvas: HTMLCanvasElement) => void; }
+export interface ShareImageVariant {
+  label: string;
+  description: string;
+  draw: (canvas: HTMLCanvasElement) => void;
+  /** CSS preview ratio (width / height). */
+  aspectRatio?: number;
+  /** Stable export suffix, e.g. `story` or `og`; legacy variants use an index. */
+  fileSuffix?: string;
+}
 
 export function ShareImagePreview({ variants, path, buttonLabel, title, filename, shareText, selectionLabel, linkLabel }: { variants: ShareImageVariant[]; path?: string; buttonLabel: string; title: string; filename: string; shareText: string; selectionLabel: string; linkLabel: string }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -37,7 +45,8 @@ export function ShareImagePreview({ variants, path, buttonLabel, title, filename
         const blob = await new Promise<Blob>((resolve, reject) => canvasRef.current!.toBlob(value => value ? resolve(value) : reject(new Error("Could not create image")), "image/png"));
         if (cancelled) return;
         const name = filename.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").slice(0, 60) || "image";
-        const image = new File([blob], `${name.toLowerCase()}-${selected + 1}.png`, { type: "image/png" });
+        const suffix = variant.fileSuffix ?? String(selected + 1);
+        const image = new File([blob], `${name.toLowerCase()}-${suffix}.png`, { type: "image/png" });
         setFile(image);
         setCanShare(Boolean(navigator.canShare?.({ files: [image] }) && navigator.share));
       } catch {
@@ -82,7 +91,7 @@ export function ShareImagePreview({ variants, path, buttonLabel, title, filename
     <dialog className="achievement-dialog" ref={dialogRef} onClose={() => setOpen(false)} aria-labelledby={titleId}>
       <div className="achievement-dialog-head"><div><p className="eyebrow">Made for the group chat</p><h2 id={titleId}>{title}</h2></div><button className="achievement-close" type="button" aria-label="Close image preview" onClick={() => setOpen(false)}><X aria-hidden="true" /></button></div>
       {variants.length > 1 && <label className="field"><span className="field-label">{selectionLabel}</span><select className="select" value={selected} disabled={busy} onChange={event => { setSelected(Number(event.target.value)); setFile(undefined); setError(""); setMessage(""); }}>{variants.map((item, index) => <option value={index} key={index}>{item.label}</option>)}</select></label>}
-      <div className="achievement-preview" aria-busy={!file && !error}>
+      <div className="achievement-preview" aria-busy={!file && !error} style={{ aspectRatio: variant?.aspectRatio }}>
         <canvas ref={canvasRef} role="img" aria-label={variant?.description} />
         {!file && !error && <p role="status"><InlineSpinner /> Creating your image…</p>}
       </div>

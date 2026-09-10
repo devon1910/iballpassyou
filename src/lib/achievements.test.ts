@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { monthlyMvps, playerHonours, sessionMotm, sessionRecord } from "./achievements";
+import { monthlyMvps, playerHonours, sessionMilestones, sessionMotm, sessionRecord } from "./achievements";
 import type { FootballSession, Group } from "@/types/domain";
 
 function session(id: string, date: string, goals = 1, format: FootballSession["format"] = "none"): FootballSession {
@@ -64,5 +64,20 @@ describe("personal bests", () => {
   });
   it("has no fabricated awards or records for a player with no sessions", () => {
     expect(playerHonours(group([]), "a", now)).toEqual({ motm: [], mvp: [], bests: [] });
+  });
+});
+
+describe("session receipt milestones", () => {
+  it("derives first goals and scoring runs without filler rows", () => {
+    const first = session("run-1", "2026-08-01T12:00:00Z", 1);
+    const second = session("run-2", "2026-08-02T12:00:00Z", 1);
+    const third = session("run-3", "2026-08-03T12:00:00Z", 1);
+    third.appearances.push({ playerId: "b", playerName: "Ben", goals: 1, assists: 1 });
+    const g = group([first, second, third]);
+    expect(sessionMilestones(g, third).map((milestone) => milestone.clause)).toEqual([
+      "SCORED IN 3 STRAIGHT",
+      "FIRST GOAL FOR THE GROUP",
+    ]);
+    expect(sessionMilestones(g, third, ["a"]).map((milestone) => milestone.playerId)).toEqual(["b"]);
   });
 });

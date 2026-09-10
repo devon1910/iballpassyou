@@ -1,7 +1,32 @@
+import {
+  CONTENT_LEFT,
+  CONTENT_RIGHT,
+  drawReceiptBarcode,
+  drawReceiptDocket,
+  drawReceiptFooter,
+  drawReceiptGround,
+  drawReceiptMasthead,
+  drawReceiptRule,
+  drawReceiptText,
+  fitReceiptText,
+  OG_SIZE,
+  RECEIPT_COLORS,
+  RECEIPT_SIZE,
+  STORY_SIZE,
+  type ReceiptBaseData,
+} from "@/lib/receipt-image";
 import type { LeaderboardPeriod, LeaderboardRow } from "@/types/domain";
 
+/**
+ * Kept for source compatibility with older callers. Share cards themselves
+ * use leaderboardCardRows and never paginate.
+ */
 export function leaderboardImagePages(rows: LeaderboardRow[]) {
   return Array.from({ length: Math.ceil(rows.length / 10) }, (_, index) => rows.slice(index * 10, index * 10 + 10));
+}
+
+export function leaderboardCardRows(rows: LeaderboardRow[]) {
+  return rows.slice(0, 6);
 }
 
 export function leaderboardPeriodLabel(period: LeaderboardPeriod, timezone: string, now = new Date()) {
@@ -13,61 +38,79 @@ export function leaderboardPeriodLabel(period: LeaderboardPeriod, timezone: stri
   return new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(year, month - (period === "last_month" ? 2 : 1), 1)));
 }
 
-export interface LeaderboardImageData {
-  groupName: string;
+export interface LeaderboardImageData extends ReceiptBaseData {
   periodLabel: string;
   snapshotDate: string;
   rows: LeaderboardRow[];
 }
 
-export function drawLeaderboardImage(canvas: HTMLCanvasElement, data: LeaderboardImageData, rows: LeaderboardRow[], page: number, pageCount: number) {
-  canvas.width = 1080; canvas.height = 1440;
+function drawTableReceipt(ctx: CanvasRenderingContext2D, data: LeaderboardImageData) {
+  drawReceiptGround(ctx);
+  drawReceiptMasthead(ctx, data);
+  drawReceiptDocket(ctx, data, data.periodLabel.toUpperCase());
+  drawReceiptRule(ctx, 268);
+
+  const rows = leaderboardCardRows(data.rows);
+  drawReceiptText(ctx, "RANK", CONTENT_LEFT, 327, 18, RECEIPT_COLORS.secondary, 400, '"IBM Plex Mono", ui-monospace, monospace');
+  drawReceiptText(ctx, "PLAYER", 190, 327, 18, RECEIPT_COLORS.secondary, 400, '"IBM Plex Mono", ui-monospace, monospace');
+  drawReceiptText(ctx, "STAT LINE", 742, 327, 18, RECEIPT_COLORS.secondary, 400, '"IBM Plex Mono", ui-monospace, monospace', "right");
+  drawReceiptText(ctx, "PTS", CONTENT_RIGHT, 327, 18, RECEIPT_COLORS.secondary, 400, '"IBM Plex Mono", ui-monospace, monospace', "right");
+
+  rows.forEach((row, index) => {
+    const y = 390 + index * 89;
+    const top = row.rank === 1;
+    drawReceiptText(ctx, String(row.rank).padStart(2, "0"), CONTENT_LEFT, y, 24, top ? RECEIPT_COLORS.lime : RECEIPT_COLORS.secondary, 400, '"IBM Plex Mono", ui-monospace, monospace');
+    fitReceiptText(ctx, row.name, 420, 34, 20, RECEIPT_COLORS.paper, 800, '"Archivo Variable", Helvetica, Arial, sans-serif', 190, y);
+    drawReceiptText(ctx, `${row.goals}G ${row.assists}A · ${row.rating}`, 742, y, 18, RECEIPT_COLORS.secondary, 400, '"IBM Plex Mono", ui-monospace, monospace', "right");
+    drawReceiptText(ctx, String(row.rating), CONTENT_RIGHT, y, 30, top ? RECEIPT_COLORS.lime : RECEIPT_COLORS.paper, 800, '"Archivo Variable", Helvetica, Arial, sans-serif', "right");
+    drawReceiptRule(ctx, y + 32);
+  });
+
+  if (data.rows.length > rows.length) drawReceiptText(ctx, `+ ${data.rows.length - rows.length} MORE AT IBALLPASSYOU.COM/${data.groupSlug || "GROUP"}`, CONTENT_LEFT, 968, 18, RECEIPT_COLORS.secondary, 400, '"IBM Plex Mono", ui-monospace, monospace');
+  drawReceiptRule(ctx, 1040, true);
+  drawReceiptBarcode(ctx, data);
+  drawReceiptFooter(ctx, data);
+}
+
+/** Draw the 1080×1350 top-six table receipt. */
+export function drawLeaderboardImage(canvas: HTMLCanvasElement, data: LeaderboardImageData, _rows = data.rows, _page = 0, _pageCount = 1) {
+  canvas.width = RECEIPT_SIZE.width;
+  canvas.height = RECEIPT_SIZE.height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Image creation is unavailable in this browser.");
-  const paper = "#f4f3ec", lime = "#d6f531", ink = "#12140e", muted = "#b5b8aa";
-  function text(value: string, x: number, y: number, size: number, color = paper, weight = 600, width?: number, align: CanvasTextAlign = "left") {
-    ctx!.textAlign = align;
-    ctx!.font = `${weight} ${size}px "Archivo Variable", Helvetica, Arial, sans-serif`;
-    while (width && ctx!.measureText(value).width > width && size > 16) {
-      size--; ctx!.font = `${weight} ${size}px "Archivo Variable", Helvetica, Arial, sans-serif`;
-    }
-    if (width && ctx!.measureText(value).width > width) {
-      while (value.length && ctx!.measureText(`${value}…`).width > width) value = value.slice(0, -1);
-      value += "…";
-    }
-    ctx!.fillStyle = color; ctx!.fillText(value, x, y);
-  }
-  ctx.fillStyle = ink; ctx.fillRect(0, 0, 1080, 1440);
-  const glow = ctx.createLinearGradient(0, 0, 1080, 650);
-  glow.addColorStop(0, "#303a1b"); glow.addColorStop(1, ink);
-  ctx.fillStyle = glow; ctx.fillRect(0, 0, 1080, 650);
-  ctx.fillStyle = lime; ctx.fillRect(72, 72, 52, 7);
-  text("THE GROUP STANDINGS", 72, 132, 24, lime);
-  text(data.groupName.toUpperCase(), 72, 234, 78, paper, 800, 936);
-  text(data.periodLabel.toUpperCase(), 72, 300, 29, lime, 700, 640);
-  text(`${data.rows.length} PLAYERS`, 1008, 300, 22, muted, 500, 270, "right");
+  drawTableReceipt(ctx, data);
+}
 
-  text("#", 108, 380, 21, muted);
-  text("PLAYER", 190, 380, 21, muted);
-  text("GOALS", 697, 380, 20, muted, 600, undefined, "right");
-  text("ASSISTS", 827, 380, 20, muted, 600, undefined, "right");
-  text("RATING", 973, 380, 20, muted, 600, undefined, "right");
-  rows.forEach((row, index) => {
-    const y = 408 + index * 77;
-    const top = row.rank === 1;
-    ctx.fillStyle = top ? lime : index % 2 === 0 ? "#1e2217" : "#171a12";
-    ctx.fillRect(72, y, 936, 72);
-    const color = top ? ink : paper;
-    text(String(row.rank), 108, y + 47, 27, top ? ink : muted, 700, 58);
-    text(row.name, 190, y + 47, 30, color, 700, 360);
-    text(String(row.goals), 697, y + 47, 27, color, 600, 100, "right");
-    text(String(row.assists), 827, y + 47, 27, color, 600, 100, "right");
-    text(String(row.rating), 973, y + 49, 35, top ? ink : lime, 800, 120, "right");
-  });
-  text("Goal +4  ·  Assist +2  ·  Session win +1", 72, 1230, 23, muted, 500);
-  text(`AS OF ${data.snapshotDate.toUpperCase()}`, 72, 1273, 20, muted, 500);
-  text(`CARD ${page + 1} / ${pageCount}`, 1008, 1273, 20, muted, 500, undefined, "right");
-  ctx.fillStyle = "#363d29"; ctx.fillRect(72, 1305, 936, 1);
-  text("iballpassyou", 72, 1373, 43, paper, 800);
-  text("SEE WHO BALL PASS ↗", 1008, 1373, 23, lime, 600, undefined, "right");
+/** Draw the 1080×1920 story crop with the same top-six content. */
+export function drawLeaderboardStoryImage(canvas: HTMLCanvasElement, data: LeaderboardImageData) {
+  canvas.width = STORY_SIZE.width;
+  canvas.height = STORY_SIZE.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Image creation is unavailable in this browser.");
+  drawReceiptGround(ctx, STORY_SIZE.width, STORY_SIZE.height);
+  ctx.save();
+  ctx.translate(0, 320);
+  ctx.scale(1, 1320 / RECEIPT_SIZE.height);
+  drawTableReceipt(ctx, data);
+  ctx.restore();
+}
+
+/** Draw the 1200×630 OG table crop: masthead, table subject, top points and footer. */
+export function drawLeaderboardOgImage(canvas: HTMLCanvasElement, data: LeaderboardImageData) {
+  canvas.width = OG_SIZE.width;
+  canvas.height = OG_SIZE.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Image creation is unavailable in this browser.");
+  drawReceiptGround(ctx, OG_SIZE.width, OG_SIZE.height);
+  const left = 76;
+  const right = OG_SIZE.width - 76;
+  drawReceiptText(ctx, "iballpassyou", left, 77, 34, RECEIPT_COLORS.paper, 800, '"Archivo Variable", Helvetica, Arial, sans-serif');
+  drawReceiptText(ctx, "KEEP THE RECEIPTS", right, 77, 17, RECEIPT_COLORS.secondary, 400, '"IBM Plex Mono", ui-monospace, monospace', "right");
+  ctx.strokeStyle = RECEIPT_COLORS.paper; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(left, 108); ctx.lineTo(right, 108); ctx.stroke();
+  fitReceiptText(ctx, data.groupName, right - left, 74, 30, RECEIPT_COLORS.paper, 800, '"Archivo Variable", Helvetica, Arial, sans-serif', left, 258);
+  drawReceiptText(ctx, data.periodLabel.toUpperCase(), left, 303, 18, RECEIPT_COLORS.secondary, 400, '"IBM Plex Mono", ui-monospace, monospace');
+  const winner = leaderboardCardRows(data.rows)[0];
+  if (winner) drawReceiptText(ctx, String(winner.rating), right, 303, 72, winner.rank === 1 ? RECEIPT_COLORS.lime : RECEIPT_COLORS.paper, 800, '"Archivo Variable", Helvetica, Arial, sans-serif', "right");
+  drawReceiptText(ctx, `IBALLPASSYOU.COM/${data.groupSlug || "GROUP"}`, left, 584, 17, RECEIPT_COLORS.secondary, 400, '"IBM Plex Mono", ui-monospace, monospace');
+  if (data.sessionNumber !== undefined) drawReceiptText(ctx, `NO. ${String(data.sessionNumber).padStart(4, "0")}`, right, 584, 17, RECEIPT_COLORS.secondary, 400, '"IBM Plex Mono", ui-monospace, monospace', "right");
 }

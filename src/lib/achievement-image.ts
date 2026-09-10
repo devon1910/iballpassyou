@@ -1,3 +1,24 @@
+import {
+  CONTENT_WIDTH,
+  drawReceiptBarcode,
+  drawReceiptDocket,
+  drawReceiptFooter,
+  drawReceiptGround,
+  drawReceiptLineItems,
+  drawReceiptMasthead,
+  drawReceiptRule,
+  drawReceiptStamp,
+  drawReceiptText,
+  drawReceiptTotal,
+  fitReceiptText,
+  OG_SIZE,
+  RECEIPT_COLORS,
+  RECEIPT_SIZE,
+  receiptItems,
+  STORY_SIZE,
+  type ReceiptBaseData,
+} from "@/lib/receipt-image";
+
 export interface AchievementRecord {
   format: string;
   points: number;
@@ -5,112 +26,126 @@ export interface AchievementRecord {
   assists: number;
   date: string;
 }
-
-export interface AchievementImageData {
+/**
+ * Legacy fields are retained for callers that still open a player share
+ * preview. Optional receipt fields let session MOTM cards carry every fact
+ * without fabricating missing values.
+ */
+export interface AchievementImageData extends ReceiptBaseData {
   playerName: string;
-  groupName: string;
   motm: number;
   mvp: number;
   records: AchievementRecord[];
+  names?: string[];
+  points?: number;
+  goals?: number;
+  assists?: number;
+  wins?: number;
+  rating?: number | string;
+  rank?: number;
+  playerCount?: number;
+  seasonBest?: boolean;
 }
 
-export const ACHIEVEMENT_IMAGE_SIZE = { width: 1080, height: 1440 };
+export const ACHIEVEMENT_IMAGE_SIZE = RECEIPT_SIZE;
 
-/** Draw the preview and exported PNG from the same canvas. No remote assets. */
-export function drawAchievementImage(canvas: HTMLCanvasElement, data: AchievementImageData, record?: AchievementRecord) {
-  canvas.width = ACHIEVEMENT_IMAGE_SIZE.width;
-  canvas.height = ACHIEVEMENT_IMAGE_SIZE.height;
+function normaliseNames(data: AchievementImageData) {
+  return data.names?.length ? data.names : [data.playerName];
+}
+
+function drawMotmReceipt(ctx: CanvasRenderingContext2D, data: AchievementImageData, record?: AchievementRecord) {
+  drawReceiptGround(ctx);
+  drawReceiptMasthead(ctx, data);
+  drawReceiptDocket(ctx, data, "GREENFIELD PITCH");
+  drawReceiptStamp(ctx, "MAN OF THE MATCH", 304);
+
+  const names = normaliseNames(data);
+  const subjectSize = names.length > 1 ? 132 : 232;
+  const availableNameWidth = CONTENT_WIDTH - 8;
+  const measuredSizes = names.map((name) => {
+    let size = subjectSize;
+    ctx.save();
+    ctx.font = `800 ${size}px "Archivo Variable", Helvetica, Arial, sans-serif`;
+    while (ctx.measureText(name).width > availableNameWidth && size > 40) {
+      size -= size > 180 ? 1 : 2;
+      ctx.font = `800 ${size}px "Archivo Variable", Helvetica, Arial, sans-serif`;
+    }
+    ctx.restore();
+    return size;
+  });
+  const size = Math.min(...measuredSizes);
+  names.forEach((name, index) => fitReceiptText(ctx, name, availableNameWidth, size, 40, RECEIPT_COLORS.paper, 800, '"Archivo Variable", Helvetica, Arial, sans-serif', 76, 555 + index * (size + 10)));
+  drawReceiptRule(ctx, 614);
+
+  const goals = data.goals ?? record?.goals ?? 0;
+  const assists = data.assists ?? record?.assists ?? 0;
+  const wins = data.wins ?? 0;
+  drawReceiptLineItems(ctx, receiptItems(goals, assists, wins));
+  drawReceiptRule(ctx, 825, true);
+
+  const points = data.points ?? record?.points;
+  if (points !== undefined) drawReceiptTotal(ctx, points);
+  const meta = [
+    data.rating !== undefined ? `RATING ${data.rating}` : undefined,
+    data.rank !== undefined && data.playerCount !== undefined ? `RANK ${data.rank} / ${data.playerCount}` : undefined,
+    data.seasonBest ? "SEASON BEST" : undefined,
+  ].filter((item): item is string => Boolean(item));
+  if (meta.length) {
+    const positions = meta.length === 1 ? [76] : meta.length === 2 ? [76, 1004] : [76, 540, 1004];
+    meta.forEach((item, index) => drawReceiptText(ctx, item, positions[index], 992, 20, RECEIPT_COLORS.secondary, 400, '"IBM Plex Mono", ui-monospace, monospace', index === meta.length - 1 && meta.length > 1 ? "right" : "left"));
+  }
+
+  drawReceiptBarcode(ctx, data);
+  drawReceiptFooter(ctx, data);
+}
+
+/** Draw the 1080×1350 MOTM receipt master. */
+export function drawMotmReceiptImage(canvas: HTMLCanvasElement, data: AchievementImageData, record?: AchievementRecord) {
+  canvas.width = RECEIPT_SIZE.width;
+  canvas.height = RECEIPT_SIZE.height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Image creation is unavailable in this browser.");
-  const ink = "#12140e", lime = "#d6f531", gold = "#e9bd62", paper = "#f4f3ec", muted = "#b5b8aa";
-  const font = '"Archivo Variable", Helvetica, Arial, sans-serif';
-  const mono = '"IBM Plex Mono", monospace';
-  function text(value: string, x: number, y: number, size: number, color = paper, weight = 600, family = font) {
-    ctx!.fillStyle = color;
-    ctx!.font = `${weight} ${size}px ${family}`;
-    ctx!.fillText(value, x, y);
-  }
-  function fit(value: string, x: number, y: number, width: number, size: number, color = paper) {
-    let fitted = size;
-    ctx!.font = `800 ${fitted}px ${font}`;
-    while (ctx!.measureText(value).width > width && fitted > 12) {
-      fitted -= 1;
-      ctx!.font = `800 ${fitted}px ${font}`;
-    }
-    text(value, x, y, fitted, color, 800);
-  }
-  function name(value: string) {
-    // Wrap long names (including names without spaces) before reducing the size.
-    let size = 96;
-    let lines: string[] = [];
-    do {
-      ctx!.font = `800 ${size}px ${font}`;
-      lines = [""];
-      for (const char of value.toUpperCase()) {
-        const last = lines.length - 1;
-        if (ctx!.measureText(lines[last] + char).width > 912) lines.push(char.trimStart());
-        else lines[last] += char;
-      }
-      if (lines.length <= 2) break;
-      size -= 2;
-    } while (size > 12);
-    lines.forEach((line, index) => text(line.trim(), 84, 300 + index * (size + 8), size, paper, 800));
-  }
-  function icon(kind: "medal" | "trophy", x: number, y: number) {
-    ctx!.save();
-    ctx!.translate(x, y);
-    ctx!.scale(2.4, 2.4);
-    ctx!.strokeStyle = gold;
-    ctx!.lineWidth = 1.7;
-    ctx!.lineCap = "round";
-    ctx!.lineJoin = "round";
-    const path = kind === "medal"
-      ? "M8 14 3 5 6 2h12l3 3-5 9 M8 2l4 8 4-8 M7 17a5 5 0 1 0 10 0a5 5 0 1 0-10 0 M12 15v4"
-      : "M8 2h8v7a4 4 0 0 1-8 0Z M8 4H4v3a4 4 0 0 0 4 4 M16 4h4v3a4 4 0 0 1-4 4 M12 13v6 M8 22v-3h8v3 M6 22h12";
-    ctx!.stroke(new Path2D(path));
-    ctx!.restore();
-  }
+  drawMotmReceipt(ctx, data, record);
+}
 
-  ctx.fillStyle = ink;
-  ctx.fillRect(0, 0, 1080, 1440);
-  const glow = ctx.createRadialGradient(1040, 0, 0, 1040, 0, 1150);
-  glow.addColorStop(0, "#39421c"); glow.addColorStop(1, ink);
-  ctx.fillStyle = glow; ctx.fillRect(0, 0, 1080, 1440);
-  ctx.strokeStyle = "#363e24"; ctx.lineWidth = 2;
-  for (let i = 0; i < 5; i++) {
-    ctx.beginPath(); ctx.moveTo(700 + i * 100, 0); ctx.lineTo(1080, 380 + i * 100); ctx.stroke();
-  }
-  ctx.fillStyle = lime; ctx.fillRect(84, 82, 54, 7);
-  text("THE PLAYER FILE", 84, 152, 22, lime, 500, mono);
-  text("CAREER HONOURS", 728, 152, 20, muted, 400, mono);
-  name(data.playerName);
-  fit(data.groupName, 84, 455, 912, 30, muted);
+/** Draw the 1080×1920 story variant, with the mandated dead zones. */
+export function drawMotmReceiptStoryImage(canvas: HTMLCanvasElement, data: AchievementImageData, record?: AchievementRecord) {
+  canvas.width = STORY_SIZE.width;
+  canvas.height = STORY_SIZE.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Image creation is unavailable in this browser.");
+  drawReceiptGround(ctx, STORY_SIZE.width, STORY_SIZE.height);
+  ctx.save();
+  ctx.translate(0, 320);
+  ctx.scale(1, 1320 / RECEIPT_SIZE.height);
+  drawMotmReceipt(ctx, data, record);
+  ctx.restore();
+}
 
-  [84, 552].forEach(x => {
-    ctx.fillStyle = "#23251a"; ctx.fillRect(x, 510, 444, 222);
-    ctx.strokeStyle = "#625431"; ctx.strokeRect(x, 510, 444, 222);
-  });
-  icon("medal", 114, 547); icon("trophy", 582, 547);
-  fit(`×${data.motm}`, 208, 617, 284, 76, gold);
-  fit(`×${data.mvp}`, 676, 617, 284, 76, gold);
-  text("MAN OF THE MATCH", 114, 686, 23, paper, 500, mono);
-  text("MONTHLY MVP", 582, 686, 23, paper, 500, mono);
+/** Draw the 1200×630 OG crop: masthead, stamp, subject, total and footer. */
+export function drawMotmReceiptOgImage(canvas: HTMLCanvasElement, data: AchievementImageData, record?: AchievementRecord) {
+  canvas.width = OG_SIZE.width;
+  canvas.height = OG_SIZE.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Image creation is unavailable in this browser.");
+  drawReceiptGround(ctx, OG_SIZE.width, OG_SIZE.height);
+  const left = 76;
+  const right = OG_SIZE.width - 76;
+  drawReceiptText(ctx, "iballpassyou", left, 77, 34, RECEIPT_COLORS.paper, 800, '"Archivo Variable", Helvetica, Arial, sans-serif');
+  drawReceiptText(ctx, "KEEP THE RECEIPTS", right, 77, 17, RECEIPT_COLORS.secondary, 400, '"IBM Plex Mono", ui-monospace, monospace', "right");
+  ctx.strokeStyle = RECEIPT_COLORS.paper; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(left, 108); ctx.lineTo(right, 108); ctx.stroke();
+  ctx.save(); ctx.translate(0, -159); drawReceiptStamp(ctx, "MAN OF THE MATCH", 304); ctx.restore();
+  const names = normaliseNames(data);
+  const joined = names.join(" / ");
+  fitReceiptText(ctx, joined, right - left - 230, names.length > 1 ? 74 : 112, 30, RECEIPT_COLORS.paper, 800, '"Archivo Variable", Helvetica, Arial, sans-serif', left, 280);
+  const points = data.points ?? record?.points;
+  if (points !== undefined) drawReceiptText(ctx, String(points), right, 348, 76, RECEIPT_COLORS.lime, 800, '"Archivo Variable", Helvetica, Arial, sans-serif', "right");
+  drawReceiptText(ctx, data.groupName, left, 350, 18, RECEIPT_COLORS.secondary, 400, '"IBM Plex Mono", ui-monospace, monospace');
+  drawReceiptText(ctx, `IBALLPASSYOU.COM/${data.groupSlug || "GROUP"}`, left, 584, 17, RECEIPT_COLORS.secondary, 400, '"IBM Plex Mono", ui-monospace, monospace');
+  if (data.sessionNumber !== undefined) drawReceiptText(ctx, `NO. ${String(data.sessionNumber).padStart(4, "0")}`, right, 584, 17, RECEIPT_COLORS.secondary, 400, '"IBM Plex Mono", ui-monospace, monospace', "right");
+}
 
-  ctx.fillStyle = lime; ctx.fillRect(84, 776, 912, 444);
-  if (record) {
-    text("PERSONAL BEST", 120, 833, 25, ink, 500, mono);
-    fit(record.format.toUpperCase(), 120, 883, 825, 24, "#475014");
-    fit(String(record.points), 114, 1049, 630, 174, ink);
-    text("POINTS", 761, 1049, 30, ink, 700);
-    fit(`${record.goals} ${record.goals === 1 ? "goal" : "goals"}  /  ${record.assists} ${record.assists === 1 ? "assist" : "assists"}`, 120, 1120, 825, 37, ink);
-    text(record.date, 120, 1176, 24, "#475014", 500, mono);
-  } else {
-    text("EVERY SESSION COUNTS.", 120, 893, 44, ink, 800);
-    text("BUILD YOUR LEGACY.", 120, 956, 44, ink, 800);
-    text("The next record is yours to chase.", 120, 1118, 28, ink, 500);
-  }
-  text("iballpassyou", 84, 1313, 43, paper, 800);
-  ctx.fillStyle = lime; ctx.fillRect(359, 1290, 10, 10);
-  text("YOUR GAME. YOUR NUMBERS.", 84, 1360, 19, muted, 400, mono);
-  text("VIEW MY PLAYER PROFILE ↗", 643, 1359, 20, lime, 500, mono);
+/** Backwards-compatible name used by the existing share preview. */
+export function drawAchievementImage(canvas: HTMLCanvasElement, data: AchievementImageData, record?: AchievementRecord) {
+  drawMotmReceiptImage(canvas, data, record);
 }

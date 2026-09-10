@@ -15,7 +15,7 @@ export default async function FullLeaderboard({ params, searchParams }: PageProp
   return <main className="shell">
     <SiteNav backHref={`/app/groups/${groupId}`} />
     <GroupHeading group={group} />
-    {savedSession && <><p className="notice" role="status">Session saved. Here are the standout performances.</p><SessionAchievements group={group} session={savedSession} /></>}
+    {savedSession && <><p className="notice" role="status">Session saved. Here are the standout performances.</p><SessionAchievements group={group} session={savedSession} reveal /></>}
     <SessionCalendar groupId={groupId} sessions={group.sessions} timezone={group.timezone} />
     <PublicTable group={group} period={period} base={`/app/groups/${groupId}/leaderboard`} playerBase={`/app/groups/${groupId}/players`} allowCopy />
   </main>;
