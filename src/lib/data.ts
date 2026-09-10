@@ -15,4 +15,20 @@ export async function getGroupOr404(id:string){const client=await createClient()
 export async function getPublicGroupOr404(slug:string){const client=await createClient();if(!client)return findPublicGroup(slug)??notFound();const {data,error}=await client.rpc("read_public_group",{slug});if(error||!data)return notFound();return mapGroup(data as Payload);}
 export async function getSharedGroupOr404(token:string){const client=await createClient();if(!client)return demoGroups.find(g=>g.shareToken===token)??notFound();const {data,error}=await client.rpc("read_shared_group",{token});if(error||!data)return notFound();return mapGroup(data as Payload);}
 export async function getMyGroups(){const client=await createClient();if(!client)return demoGroups;const {data,error}=await client.rpc("list_my_groups");return !error&&Array.isArray(data)?data.map(v=>mapGroup(v as Payload)):[];}
-export async function getPublicGroups(){const client=await createClient();if(!client)return demoGroups.filter(g=>g.visibility==="public"&&g.sessions.length>0);const {data,error}=await client.rpc("explore_public_group_payloads");if(error||!Array.isArray(data))return [];return data.map((item:Payload)=>mapGroup(item)).filter((group)=>group.sessions.length>0);}
+export async function getPublicGroups(){
+  const client=await createClient();
+  if(!client)return demoGroups.filter(g=>g.visibility==="public"&&g.sessions.length>0);
+  const {data,error}=await client.rpc("explore_public_group_payloads");
+  if(!error&&Array.isArray(data))return data.map((item:Payload)=>mapGroup(item)).filter((group)=>group.sessions.length>0);
+
+  // Keep Explore working while a deployment is temporarily ahead of its
+  // database migration. The older RPC returns slugs, which are then expanded
+  // through the existing public-group reader.
+  const {data:legacy,error:legacyError}=await client.rpc("explore_public_groups");
+  if(legacyError||!Array.isArray(legacy))return [];
+  const groups=await Promise.all(legacy.map(async(item:Payload)=>{
+    const {data:full}=await client.rpc("read_public_group",{slug:item.public_slug});
+    return full?mapGroup(full as Payload):null;
+  }));
+  return groups.filter((group):group is Group=>Boolean(group&&group.sessions.length>0));
+}
