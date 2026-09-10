@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ShareButton } from "@/components/share-button";
+import { ShareMotmAchievement } from "@/components/share-motm-achievement";
 import { ShareSessionAchievements } from "@/components/share-session-achievements";
 import { sessionMilestones, sessionMotm } from "@/lib/achievements";
+import { uniqueWinningTeamId } from "@/lib/rating";
 import type { FootballSession, Group } from "@/types/domain";
 
 function receiptDate(value: string, timezone: string) {
@@ -54,7 +55,30 @@ export function SessionAchievements({ group, session, reveal = false }: { group:
       <p className="mono receipt-print-total" data-anim="ibpyFade 180ms linear 1.86s both">{winner.rating} POINTS</p>
     </div> : <p className="muted">No positive session rating was recorded.</p>}
     {shareBase && shareData && <>
-      <ShareButton label="Share Man of the Match" title="iballpassyou · Man of the Match" path={shareBase} text={`${winners.map((item) => item.name).join(" / ")} · ${winner.rating} points · ${group.name} · ${date}`} />
+      <ShareMotmAchievement
+        path={shareBase}
+        filename={`${groupSlug ?? "group"}-${new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "2-digit", year: "2-digit", timeZone: group.timezone }).format(new Date(session.kickoffAt)).replaceAll("/", "-")}`}
+        data={{
+          playerName: winner.name,
+          names: winners.map((item) => item.name),
+          groupName: group.name,
+          groupSlug,
+          barcodeValue: shareData.barcodeValue,
+          venue: shareData.venue,
+          date,
+          sessionNumber: shareData.sessionNumber,
+          motm: 1,
+          mvp: 0,
+          records: [],
+          points: winner.rating,
+          goals: winnerAppearance?.goals,
+          assists: winnerAppearance?.assists,
+          wins: winnerAppearance?.teamId && winnerAppearance.teamId === uniqueWinningTeamId(session) ? 1 : 0,
+          rating: winner.rating,
+          rank: 1,
+          playerCount: session.appearances.length,
+        }}
+      />
       <ShareSessionAchievements path={shareBase} data={shareData} />
     </>}
     {milestones.map((milestone, index) => <article className="record-card receipt-print-item" style={{ "--receipt-delay": `${1.24 + index * .11}s` } as React.CSSProperties} data-anim={`ibpyFade 160ms linear ${1.24 + index * .11}s both`} key={milestone.playerId}>
