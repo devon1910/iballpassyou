@@ -31,6 +31,11 @@
 .honour-history { list-style: none; margin: 0; padding: 0; }
 .honour-history li { display: grid; gap: 5px; border-top: 1px solid #484331; padding-top: 12px; margin-top: 16px; font-size: 12px; }
 .honour-history li span:last-child { color: #b5b8aa; font: 10px/1.5 var(--font-mono); }
+.honour-history .button { margin-top: 8px; width: fit-content; }
+.monthly-mvp-card { margin: 22px 0; padding: 24px; border: 1px solid #75612d; background: radial-gradient(ellipse at top right, #44351d, #1d2016 75%); }
+.monthly-mvp-card .eyebrow { color: #e9bd62; }
+.monthly-mvp-card h2 { margin: 10px 0; overflow-wrap: anywhere; }
+.monthly-mvp-card .mono { margin: 0 0 18px; color: var(--color-lime); font-size: 12px; }
 .personal-bests { padding: 20px; border: 1px solid var(--color-hair); }
 .personal-bests > .section-label { display: flex; align-items: center; gap: 8px; color: var(--color-lime); }
 .personal-best { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; }

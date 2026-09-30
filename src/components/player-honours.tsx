@@ -1,5 +1,6 @@
 import { Medal, Trophy, Zap } from "lucide-react";
 import { ShareAchievements } from "@/components/share-achievements";
+import { ShareMonthlyMvp } from "@/components/share-monthly-mvp";
 import { FORMAT_LABELS, playerHonours, sessionMotm } from "@/lib/achievements";
 import type { Group } from "@/types/domain";
 
@@ -17,12 +18,12 @@ export function PlayerHonours({ group, playerId }: { group: Group; playerId: str
         {!motm.length && <p>Top the session rating to earn a medal.</p>}
       </details>
       <details className={`honour-card trophy-card ${mvp.length ? "earned" : ""}`}>
-        <summary><Trophy aria-hidden="true" size={36} /><span className="honour-count">×{mvp.length}</span><strong>Monthly MVP</strong><small>{mvp.length ? "View winning months +" : "A month to make your mark +"}</small></summary>
-        <ul className="honour-history">{mvp.map(m => <li key={m.month}><span>{m.label}</span><span>{m.winners[0].rating} pts · {m.winners.length > 1 ? "Joint MVP" : "MVP"}</span></li>)}</ul>
+        <summary><Trophy aria-hidden="true" size={36} /><span className="honour-count">×{mvp.length}</span><strong>Player of the Month</strong><small>{mvp.length ? "View winning months +" : "A month to make your mark +"}</small></summary>
+        <ul className="honour-history">{mvp.map(m => <li key={m.month}><span>{m.label}</span><span>{m.winners[0].rating} pts · {m.winners.length > 1 ? "Joint MVP" : "MVP"}</span><ShareMonthlyMvp path={shareBase ? `${shareBase}/players/${playerId}` : undefined} data={{ groupName: group.name, groupSlug: group.publicSlug ?? group.shareToken, barcodeValue: shareBase ? `https://iballpassyou.com${shareBase}/players/${playerId}` : undefined, month: m.label, names: m.winners.map(w => w.name), points: m.winners[0].rating }} /></li>)}</ul>
         {!mvp.length && <p>Finish a month with the highest total rating to earn a trophy.</p>}
       </details>
     </div>
-    <p className="rating-note">MOTM: highest session rating. MVP: highest total rating in a finished month, using {group.timezone} time. Ties share the honour; a positive score is required.</p>
+    <p className="rating-note">MOTM: highest session rating. Player of the Month: highest total rating in a finished month, using {group.timezone} time. Ties share the honour; a positive score is required.</p>
     <div className="personal-bests"><p className="section-label"><Zap size={15} aria-hidden="true" /> Personal bests</p>
       {bests.length ? bests.map(({ session, points }) => {
         const appearance = session.appearances.find(a => a.playerId === playerId)!;
