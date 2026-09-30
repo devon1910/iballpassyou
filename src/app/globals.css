@@ -35,7 +35,16 @@
 .monthly-mvp-card { margin: 22px 0; padding: 24px; border: 1px solid #75612d; background: radial-gradient(ellipse at top right, #44351d, #1d2016 75%); }
 .monthly-mvp-card .eyebrow { color: #e9bd62; }
 .monthly-mvp-card h2 { margin: 10px 0; overflow-wrap: anywhere; }
-.monthly-mvp-card .mono { margin: 0 0 18px; color: var(--color-lime); font-size: 12px; }
+.monthly-mvp-total { display: flex; align-items: baseline; gap: 12px; margin: 12px 0 20px; color: var(--color-lime); }
+.monthly-mvp-total strong { font: 800 clamp(64px, 14vw, 96px)/.9 var(--font-display); letter-spacing: -.07em; }
+.monthly-mvp-total span { font: 12px var(--font-mono); }
+.monthly-mvp-card .mono { margin: 0 0 14px; color: #e9bd62; font-size: 11px; }
+.monthly-mvp-winners { display: grid; gap: 14px; margin-bottom: 20px; }
+.monthly-mvp-winner h3 { margin: 0 0 8px; font-size: 14px; }
+.monthly-mvp-winner dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0; }
+.monthly-mvp-winner dl > div { padding: 12px; border: 1px solid #625236; background: #191c14; }
+.monthly-mvp-winner dt { color: #b5b8aa; font: 10px var(--font-mono); text-transform: uppercase; }
+.monthly-mvp-winner dd { margin: 4px 0 0; font: 800 27px/1 var(--font-display); }
 .personal-bests { padding: 20px; border: 1px solid var(--color-hair); }
 .personal-bests > .section-label { display: flex; align-items: center; gap: 8px; color: var(--color-lime); }
 .personal-best { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; }

@@ -8,7 +8,7 @@ vi.mock("@/lib/monthly-mvp-image", () => ({
   drawMonthlyMvpImage: vi.fn(), drawMonthlyMvpStoryImage: vi.fn(), drawMonthlyMvpOgImage: vi.fn(),
 }));
 
-const data = { groupName: "Ballers", month: "August 2026", names: ["Ada", "Bola"], points: 4 };
+const data = { groupName: "Ballers", month: "August 2026", winners: [{ name: "Ada", goals: 1, assists: 0, wins: 0 }, { name: "Bola", goals: 0, assists: 2, wins: 0 }], points: 4 };
 
 describe("monthly MVP image sharing", () => {
   afterEach(cleanup);

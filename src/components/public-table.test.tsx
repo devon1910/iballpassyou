@@ -26,17 +26,20 @@ describe("Player of the Month card", () => {
     expect(html).toContain("Player of the Month achievement");
     expect(html).toContain("Ada / Bola");
     expect(html).toContain("JOINT WINNERS");
+    expect(html).toContain("TOTAL POINTS");
+    expect(html).toContain("Goals</dt><dd>1</dd>");
+    expect(html).toContain("Assists</dt><dd>2</dd>");
+    expect(html).toContain("Wins</dt><dd>0</dd>");
     expect(html).toContain("Share Player of the Month");
     expect(html).toContain("/groups/ballers?period=last_month");
   });
 
-  it("shows the completed award on the default view without announcing the current month", () => {
+  it("keeps the previous month's award off This month", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-10T12:00:00Z"));
     const current = renderToStaticMarkup(<PublicTable group={group} period="month" base="/groups/ballers" playerBase="/groups/ballers/players" />);
-    expect(current).toContain("Player of the Month achievement");
-    expect(current).toContain("AUGUST 2026");
-    expect(current).not.toContain("PLAYER OF THE MONTH · SEPTEMBER 2026");
+    expect(current).not.toContain("Player of the Month achievement");
+    expect(current).not.toContain("Share Player of the Month");
   });
 
   it("does not announce a zero-score month", () => {

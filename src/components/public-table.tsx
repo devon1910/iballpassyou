@@ -17,14 +17,19 @@ export function PublicTable({ group, period, base, playerBase, allowCopy = false
   const shareBase = allowCopy ? group.visibility === "public" && group.publicSlug ? `/groups/${group.publicSlug}` : group.shareToken ? `/g/${group.shareToken}` : undefined : base;
   const sharePath = shareBase ? `${shareBase}?period=${period}` : undefined;
   const lastMonthLabel = leaderboardPeriodLabel("last_month", group.timezone, now);
-  const monthlyAward = period === "month" || period === "last_month" ? monthlyMvps(group, now).find(award => award.label === lastMonthLabel && award.winners.length > 0) : undefined;
+  const monthlyAward = period === "last_month" ? monthlyMvps(group, now).find(award => award.label === lastMonthLabel && award.winners.length > 0) : undefined;
   const winner = monthlyAward?.winners[0];
   return <><PeriodSwitcher active={period} base={base} />
     {monthlyAward && winner && <section className="monthly-mvp-card" aria-label="Player of the Month achievement">
       <p className="eyebrow">PLAYER OF THE MONTH · {monthlyAward.label.toUpperCase()}</p>
       <h2>{monthlyAward.winners.map(row => row.name).join(" / ")}</h2>
-      <p className="mono">{winner.rating} POINTS · {monthlyAward.winners.length > 1 ? "JOINT WINNERS" : "MONTHLY WINNER"}</p>
-      <ShareMonthlyMvp data={{ groupName: group.name, groupSlug: group.publicSlug ?? group.shareToken, barcodeValue: shareBase ? `https://iballpassyou.com${shareBase}?period=last_month` : undefined, month: monthlyAward.label, names: monthlyAward.winners.map(row => row.name), points: winner.rating }} path={shareBase ? `${shareBase}?period=last_month` : undefined} />
+      <div className="monthly-mvp-total"><strong>{winner.rating}</strong><span>TOTAL POINTS</span></div>
+      {monthlyAward.winners.length > 1 && <p className="mono">JOINT WINNERS</p>}
+      <div className="monthly-mvp-winners">{monthlyAward.winners.map(row => <div className="monthly-mvp-winner" key={row.playerId}>
+        {monthlyAward.winners.length > 1 && <h3>{row.name}</h3>}
+        <dl><div><dt>Goals</dt><dd>{row.goals}</dd></div><div><dt>Assists</dt><dd>{row.assists}</dd></div><div><dt>Wins</dt><dd>{row.sessionWins}</dd></div></dl>
+      </div>)}</div>
+      <ShareMonthlyMvp data={{ groupName: group.name, groupSlug: group.publicSlug ?? group.shareToken, barcodeValue: shareBase ? `https://iballpassyou.com${shareBase}?period=last_month` : undefined, month: monthlyAward.label, winners: monthlyAward.winners.map(row => ({ name: row.name, goals: row.goals, assists: row.assists, wins: row.sessionWins })), points: winner.rating }} path={shareBase ? `${shareBase}?period=last_month` : undefined} />
     </section>}
     <Leaderboard rows={rows} playerHref={(id) => `${playerBase}/${id}`} /><RatingNote /><div className="leaderboard-actions">{allowCopy ? <CopyButton text={shareText(group, rows, periodLabel)} /> : null}<ShareLeaderboard data={{ groupName: group.name, groupSlug: group.publicSlug, barcodeValue: group.publicSlug ? `https://iballpassyou.com/groups/${group.publicSlug}` : undefined, rows, periodLabel: leaderboardPeriodLabel(period, group.timezone, now), snapshotDate: new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: group.timezone }).format(now) }} path={sharePath} /></div></>;
 }
