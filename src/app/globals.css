@@ -32,19 +32,26 @@
 .honour-history li { display: grid; gap: 5px; border-top: 1px solid #484331; padding-top: 12px; margin-top: 16px; font-size: 12px; }
 .honour-history li span:last-child { color: #b5b8aa; font: 10px/1.5 var(--font-mono); }
 .honour-history .button { margin-top: 8px; width: fit-content; }
-.monthly-mvp-card { margin: 22px 0; padding: 24px; border: 1px solid #75612d; background: radial-gradient(ellipse at top right, #44351d, #1d2016 75%); }
-.monthly-mvp-card .eyebrow { color: #e9bd62; }
-.monthly-mvp-card h2 { margin: 10px 0; overflow-wrap: anywhere; }
-.monthly-mvp-total { display: flex; align-items: baseline; gap: 12px; margin: 12px 0 20px; color: var(--color-lime); }
-.monthly-mvp-total strong { font: 800 clamp(64px, 14vw, 96px)/.9 var(--font-display); letter-spacing: -.07em; }
-.monthly-mvp-total span { font: 12px var(--font-mono); }
+.monthly-mvp-card { position: relative; isolation: isolate; overflow: hidden; margin: 22px 0 28px; padding: 28px; border: 1px solid #9d8241; background: radial-gradient(ellipse at 95% 0%, #4c3a1d 0, #242315 46%, #171b12 100%); box-shadow: inset 0 0 0 1px rgba(233,189,98,.08), 0 14px 32px rgba(0,0,0,.2); }
+.monthly-mvp-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 4px; background: linear-gradient(90deg, #e9bd62, var(--color-lime) 65%, #e9bd62); }
+.monthly-mvp-card::after { content: ""; position: absolute; z-index: -1; top: -100px; right: -100px; width: 300px; height: 300px; border: 1px solid rgba(233,189,98,.18); border-radius: 50%; box-shadow: 0 0 0 26px rgba(233,189,98,.035), 0 0 0 60px rgba(233,189,98,.025); pointer-events: none; }
+.monthly-mvp-card-head { display: flex; align-items: center; gap: 15px; padding-bottom: 20px; border-bottom: 1px solid rgba(233,189,98,.25); }
+.monthly-mvp-emblem { flex: none; display: grid; place-items: center; width: 62px; height: 62px; border: 1px solid #e9bd62; background: rgba(233,189,98,.12); color: #e9bd62; }
+.monthly-mvp-card .eyebrow { margin: 0 0 7px; color: #e9bd62; letter-spacing: .16em; }
+.monthly-mvp-card .monthly-mvp-month { margin: 0; color: var(--color-paper); font-size: 10px; line-height: 1.5; }
+.monthly-mvp-card h2 { margin: 24px 0 12px; font: 800 clamp(32px, 7vw, 52px)/1 var(--font-display); letter-spacing: -.045em; overflow-wrap: anywhere; }
+.monthly-mvp-total { display: flex; align-items: baseline; gap: 15px; margin: 18px 0 20px; padding: 16px 18px; border-left: 4px solid var(--color-lime); background: rgba(11,15,7,.52); color: var(--color-lime); }
+.monthly-mvp-total strong { font: 800 clamp(68px, 15vw, 104px)/.9 var(--font-display); letter-spacing: -.07em; }
+.monthly-mvp-total span { font: 11px var(--font-mono); letter-spacing: .08em; }
 .monthly-mvp-card .mono { margin: 0 0 14px; color: #e9bd62; font-size: 11px; }
-.monthly-mvp-winners { display: grid; gap: 14px; margin-bottom: 20px; }
-.monthly-mvp-winner h3 { margin: 0 0 8px; font-size: 14px; }
-.monthly-mvp-winner dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0; }
-.monthly-mvp-winner dl > div { padding: 12px; border: 1px solid #625236; background: #191c14; }
+.monthly-mvp-winners { display: grid; gap: 14px; margin-bottom: 24px; }
+.monthly-mvp-winner h3 { margin: 0 0 9px; font-size: 15px; }
+.monthly-mvp-winner dl { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 0; }
+.monthly-mvp-winner dl > div { padding: 14px; border: 1px solid #625236; background: rgba(18,20,14,.7); }
 .monthly-mvp-winner dt { color: #b5b8aa; font: 10px var(--font-mono); text-transform: uppercase; }
-.monthly-mvp-winner dd { margin: 4px 0 0; font: 800 27px/1 var(--font-display); }
+.monthly-mvp-winner dd { margin: 4px 0 0; font: 800 30px/1 var(--font-display); }
+.monthly-mvp-card > .button { border-color: var(--color-lime); background: var(--color-lime); color: var(--color-ink); }
+@media (max-width: 380px) { .monthly-mvp-card { padding: 20px; } .monthly-mvp-emblem { width: 52px; height: 52px; } .monthly-mvp-total { flex-wrap: wrap; } }
 .personal-bests { padding: 20px; border: 1px solid var(--color-hair); }
 .personal-bests > .section-label { display: flex; align-items: center; gap: 8px; color: var(--color-lime); }
 .personal-best { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; }

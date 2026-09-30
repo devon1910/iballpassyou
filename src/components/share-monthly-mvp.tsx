@@ -5,13 +5,14 @@ import { drawMonthlyMvpImage, drawMonthlyMvpOgImage, drawMonthlyMvpStoryImage, t
 
 export function ShareMonthlyMvp({ data, path }: { data: MonthlyMvpImageData; path?: string }) {
   const names = data.winners.map(winner => winner.name).join(" / ");
-  const description = `${names}, Player of the Month for ${data.month} in ${data.groupName}, with ${data.points} points.`;
+  const award = data.inProgress ? "Player of the Month so far" : "Player of the Month";
+  const description = `${names}, ${award} for ${data.month} in ${data.groupName}, with ${data.points} points.`;
   return <ShareImagePreview
     buttonLabel="Share Player of the Month"
-    title="iballpassyou · Player of the Month"
+    title={`iballpassyou · ${award}`}
     filename={`${data.groupName}-${data.month}-player-of-the-month`}
     path={path}
-    shareText={`${names} · Player of the Month · ${data.month} · ${data.groupName}`}
+    shareText={`${names} · ${award} · ${data.month} · ${data.groupName}`}
     selectionLabel="Receipt format"
     linkLabel="Copy receipt link"
     variants={[

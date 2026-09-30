@@ -29,17 +29,30 @@ describe("Player of the Month card", () => {
     expect(html).toContain("TOTAL POINTS");
     expect(html).toContain("Goals</dt><dd>1</dd>");
     expect(html).toContain("Assists</dt><dd>2</dd>");
-    expect(html).toContain("Wins</dt><dd>0</dd>");
+    expect(html).not.toContain("Wins</dt>");
     expect(html).toContain("Share Player of the Month");
     expect(html).toContain("/groups/ballers?period=last_month");
   });
 
-  it("keeps the previous month's award off This month", () => {
+  it("shows this month's current leader and shares this month's card", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-10T12:00:00Z"));
-    const current = renderToStaticMarkup(<PublicTable group={group} period="month" base="/groups/ballers" playerBase="/groups/ballers/players" />);
-    expect(current).not.toContain("Player of the Month achievement");
-    expect(current).not.toContain("Share Player of the Month");
+    const currentGroup: Group = { ...group, sessions: [...group.sessions, { ...group.sessions[0], id: "sep-1", clientSessionId: "sep-1", kickoffAt: "2026-09-05T16:00:00Z", appearances: [{ playerId: "b", playerName: "Bola", goals: 2, assists: 1 }] }] };
+    const html = renderToStaticMarkup(<PublicTable group={currentGroup} period="month" base="/groups/ballers" playerBase="/groups/ballers/players" />);
+    expect(html).toContain("Player of the Month achievement");
+    expect(html).toContain("SEPTEMBER 2026");
+    expect(html).toContain("MONTH IN PROGRESS");
+    expect(html).toContain("Goals</dt><dd>2</dd>");
+    expect(html).toContain("Assists</dt><dd>1</dd>");
+    expect(html).not.toContain("Ada / Bola");
+    expect(html).toContain("/groups/ballers?period=month");
+  });
+
+  it("does not reuse last month's winner when this month has no positive score", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-10T12:00:00Z"));
+    const html = renderToStaticMarkup(<PublicTable group={group} period="month" base="/groups/ballers" playerBase="/groups/ballers/players" />);
+    expect(html).not.toContain("Player of the Month achievement");
   });
 
   it("does not announce a zero-score month", () => {

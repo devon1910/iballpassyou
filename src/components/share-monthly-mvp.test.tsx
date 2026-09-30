@@ -8,7 +8,7 @@ vi.mock("@/lib/monthly-mvp-image", () => ({
   drawMonthlyMvpImage: vi.fn(), drawMonthlyMvpStoryImage: vi.fn(), drawMonthlyMvpOgImage: vi.fn(),
 }));
 
-const data = { groupName: "Ballers", month: "August 2026", winners: [{ name: "Ada", goals: 1, assists: 0, wins: 0 }, { name: "Bola", goals: 0, assists: 2, wins: 0 }], points: 4 };
+const data = { groupName: "Ballers", month: "August 2026", winners: [{ name: "Ada", goals: 1, assists: 0 }, { name: "Bola", goals: 0, assists: 2 }], points: 4 };
 
 describe("monthly MVP image sharing", () => {
   afterEach(cleanup);
@@ -28,5 +28,11 @@ describe("monthly MVP image sharing", () => {
     fireEvent.change(screen.getByLabelText("Receipt format", { selector: "select" }), { target: { value: "1" } });
     await waitFor(() => expect(drawMonthlyMvpStoryImage).toHaveBeenCalledWith(expect.any(HTMLCanvasElement), data));
     expect((await screen.findByRole("button", { name: "Download image", hidden: true })).hasAttribute("disabled")).toBe(false);
+  });
+
+  it("labels an in-progress month as a current leader in the shared preview", () => {
+    render(<ShareMonthlyMvp data={{ ...data, inProgress: true }} path="/groups/ballers?period=month" />);
+    fireEvent.click(screen.getByRole("button", { name: "Share Player of the Month" }));
+    expect(screen.getByRole("heading", { name: "iballpassyou · Player of the Month so far", hidden: true })).toBeDefined();
   });
 });
