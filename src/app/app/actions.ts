@@ -1,5 +1,6 @@
 "use server";
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isFutureLocalDate, localDateTimeToIso } from "@/lib/time";
 import { POSITIONS, type BalancingProfile } from "@/lib/balance/types";
@@ -52,6 +53,35 @@ export async function saveSessionAction(input:SessionActionInput){
   }catch(error){
     console.error("saveSessionAction failed",error);
     return {ok:false as const,error:"The server couldn’t complete the save. Your session draft is still safe."};
+  }
+}
+
+const appearanceStats = z.object({
+  groupId: z.string().uuid(),
+  sessionId: z.string().uuid(),
+  playerId: z.string().uuid(),
+  goals: z.number().int().min(0).max(2147483647),
+  assists: z.number().int().min(0).max(2147483647),
+});
+
+export async function updateAppearanceStatsAction(input: z.input<typeof appearanceStats>) {
+  const checked = appearanceStats.safeParse(input);
+  if (!checked.success) return { ok: false as const, error: "Enter valid goals and assists." };
+  try {
+    const supabase = await createClient();
+    if (!supabase) return { ok: false as const, error: "Sign in to edit a saved session." };
+    const { groupId, sessionId, playerId, goals, assists } = checked.data;
+    // The row is scoped to all three IDs; RLS also requires group admin access.
+    const { error } = await supabase.from("session_players")
+      .update({ goals, assists })
+      .eq("group_id", groupId).eq("session_id", sessionId).eq("player_id", playerId)
+      .select("player_id").single();
+    if (error) return { ok: false as const, error: "Couldn’t save these stats. Check your admin access and try again." };
+    revalidatePath(`/app/groups/${groupId}/sessions/${sessionId}`);
+    revalidatePath(`/app/groups/${groupId}`);
+    return { ok: true as const };
+  } catch {
+    return { ok: false as const, error: "Couldn’t save these stats. Please try again." };
   }
 }
 

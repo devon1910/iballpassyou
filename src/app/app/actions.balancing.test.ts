@@ -1,7 +1,8 @@
 import { beforeEach, expect, it, vi } from "vitest";
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 import { createClient } from "@/lib/supabase/server";
-import { createGroupAction, saveSessionAction, saveBalancingProfileAction, type SessionActionInput } from "./actions";
+import { createGroupAction, saveSessionAction, saveBalancingProfileAction, updateAppearanceStatsAction, type SessionActionInput } from "./actions";
 
 const groupId = "11111111-1111-4111-8111-111111111111";
 const playerId = "22222222-2222-4222-8222-222222222222";
@@ -38,4 +39,19 @@ it("defaults omitted group visibility to public before calling the database", as
   const result = await createGroupAction({ name: "Public by default", timezone: "Africa/Lagos", default_session_format: "fixed_teams", schedules: [] });
   expect(result.ok).toBe(true);
   expect(rpc).toHaveBeenCalledWith("create_group", { command: expect.objectContaining({ visibility: "public" }) });
+});
+it("updates only the selected player's stats in the selected session", async () => {
+  const single = vi.fn().mockResolvedValue({ error: null });
+  const query = { update: vi.fn(), eq: vi.fn(), select: vi.fn(), single };
+  query.update.mockReturnValue(query);
+  query.eq.mockReturnValue(query);
+  query.select.mockReturnValue(query);
+  const from = vi.fn().mockReturnValue(query);
+  vi.mocked(createClient).mockResolvedValue({ from } as unknown as Awaited<ReturnType<typeof createClient>>);
+  const sessionId = input.client_session_id;
+  expect(await updateAppearanceStatsAction({ groupId, sessionId, playerId, goals: 2, assists: 2 })).toEqual({ ok: true });
+  expect(from).toHaveBeenCalledWith("session_players");
+  expect(query.update).toHaveBeenCalledWith({ goals: 2, assists: 2 });
+  expect(query.eq.mock.calls).toEqual([["group_id", groupId], ["session_id", sessionId], ["player_id", playerId]]);
+  expect(single).toHaveBeenCalledOnce();
 });
